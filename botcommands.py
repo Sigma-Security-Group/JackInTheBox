@@ -66,7 +66,7 @@ async def show(ctx, category: str):
     await ctx.send(embed=embed)
 
 # Command to interactively add, update, or delete entries
-@bot.command(name='update', help="Add, update, or delete entries in a category. Usage: !update [category]")
+@bot.command(name='update', help="Add, update, or delete entries in a category.")
 @commands.has_role(REQUIRED_ROLE)
 async def update(ctx, category: str):
     category = category.lower()
