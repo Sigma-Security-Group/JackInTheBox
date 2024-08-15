@@ -15,12 +15,12 @@ REQUIRED_ROLE = "Unit Staff"
 
 # Dictionary to map categories to their display names and descriptions
 category_mappings = {
-    "certs": {"title": "Certifications", "description": "All achievable certifications"},
-    "info": {"title": "Information", "description": "General information"},
-    "docs": {"title": "Documentation", "description": "Official documentation and guidelines"},
-    "ranks": {"title": "Ranks Information", "description": "Details on ranks and progression"},
-    "badges": {"title": "Badges", "description": "All available badges and how to earn them"},
-    "sme": {"title": "Subject Matter Experts", "description": "List of subject matter experts"}
+    "certs": {"title": "Certifications", "description": "All achievable certifications."},
+    "info": {"title": "Information", "description": "General information."},
+    "docs": {"title": "Documentation", "description": "Official documentation and guidelines."},
+    "ranks": {"title": "Ranks Information", "description": "Details on ranks and progression."},
+    "badges": {"title": "Badges", "description": "All available badges and how to earn them."},
+    "sme": {"title": "Subject Matter Experts", "description": "List of subject matter experts."}
 }
 
 # Mapping of categories to their respective JSON file paths
