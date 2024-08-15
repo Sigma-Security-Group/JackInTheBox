@@ -197,7 +197,7 @@ async def habibi(ctx):
 @bot.command(name='evesjoke', help="Diddle East")
 async def habibi(ctx):
     # Send the response message
-    await ctx.send("Diddy is didling off to the diddle east. - Eve")
+    await ctx.send("Diddy is didling off to the diddle east. - Eve Makya")
 
 # Error handler for missing role
 @update.error
