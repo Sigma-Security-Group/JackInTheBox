@@ -14,32 +14,37 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Define the role required to use update commands
 REQUIRED_ROLE = "Unit Staff"
 
-# Dictionary to map categories to their display names
+# Dictionary to map categories to their display names and descriptions
 category_mappings = {
-    "certs": "Certifications",
-    "info": "Information",
-    "docs": "Documentation",
-    "ranks": "Ranks Information",
-    "badges": "Badges",
-    "sme": "Subject Matter Experts"
+    "certs": {"title": "Certifications", "description": "All achievable certifications"},
+    "info": {"title": "Information", "description": "General information"},
+    "docs": {"title": "Documentation", "description": "Official documentation and guidelines"},
+    "ranks": {"title": "Ranks Information", "description": "Details on ranks and progression"},
+    "badges": {"title": "Badges", "description": "All available badges and how to earn them"},
+    "sme": {"title": "Subject Matter Experts", "description": "List of subject matter experts"}
 }
 
-async def create_embed(category):
-    # Ensure the category is defined and process it
-    if not category:
-        raise ValueError("Category must be provided.")
-    
-    # Use the mapping if it exists, otherwise capitalize the category
-    display_category = category_mappings.get(category.lower(), category.capitalize())
+@client.event
+async def on_message(message):
+    if message.content.startswith('!'):
+        command = message.content[1:].lower()  # Extract the command (e.g., certs, info, etc.)
 
-    # Create the embed with the adjusted title
-    embed = discord.Embed(
-        title=display_category,
-        description=f"Entries in the {display_category} category.",
-        color=discord.Color.blue()
-    )
+        if command in category_mappings:
+            # Get the title and description from the category_mappings dictionary
+            display_title = category_mappings[command]["title"]
+            display_description = category_mappings[command]["description"]
 
-    return embed
+            # Create the embed with the adjusted title and description
+            embed = discord.Embed(
+                title=display_title,
+                description=display_description,
+                color=discord.Color.blue()
+            )
+
+            # Send the embed to the channel where the command was issued
+            await message.channel.send(embed=embed)
+        else:
+            await message.channel.send("Command not recognized. Please try again.")
 
 # Mapping of categories to their respective JSON file paths
 CATEGORY_JSON_FILES = {
