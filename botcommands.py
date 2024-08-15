@@ -14,9 +14,11 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Define the role required to use update commands
 REQUIRED_ROLE = "Unit Staff"
 
+# Initialize the bot with intents and a command prefix
+intents = discord.Intents.default()
+intents.message_content = True  # Enable the intent to read message content
 
-# Initialize the bot with a command prefix
-client = commands.Bot(command_prefix='!')
+client = commands.Bot(command_prefix='!', intents=intents)
 
 # Dictionary to map categories to their display names and descriptions
 category_mappings = {
