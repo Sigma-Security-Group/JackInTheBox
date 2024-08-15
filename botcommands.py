@@ -14,6 +14,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Define the role required to use update commands
 REQUIRED_ROLE = "Unit Staff"
 
+
+# Initialize the bot with a command prefix
+client = commands.Bot(command_prefix='!')
+
 # Dictionary to map categories to their display names and descriptions
 category_mappings = {
     "certs": {"title": "Certifications", "description": "All achievable certifications"},
@@ -24,27 +28,24 @@ category_mappings = {
     "sme": {"title": "Subject Matter Experts", "description": "List of subject matter experts"}
 }
 
-@client.event
-async def on_message(message):
-    if message.content.startswith('!'):
-        command = message.content[1:].lower()  # Extract the command (e.g., certs, info, etc.)
+@client.command()
+async def certs(ctx):
+    embed = discord.Embed(
+        title=category_mappings["certs"]["title"],
+        description=category_mappings["certs"]["description"],
+        color=discord.Color.blue()
+    )
+    await ctx.send(embed=embed)
 
-        if command in category_mappings:
-            # Get the title and description from the category_mappings dictionary
-            display_title = category_mappings[command]["title"]
-            display_description = category_mappings[command]["description"]
-
-            # Create the embed with the adjusted title and description
-            embed = discord.Embed(
-                title=display_title,
-                description=display_description,
-                color=discord.Color.blue()
-            )
-
-            # Send the embed to the channel where the command was issued
-            await message.channel.send(embed=embed)
-        else:
-            await message.channel.send("Command not recognized. Please try again.")
+# Similarly, define other commands like info, docs, ranks, etc.
+@client.command()
+async def info(ctx):
+    embed = discord.Embed(
+        title=category_mappings["info"]["title"],
+        description=category_mappings["info"]["description"],
+        color=discord.Color.blue()
+    )
+    await ctx.send(embed=embed)
 
 # Mapping of categories to their respective JSON file paths
 CATEGORY_JSON_FILES = {
