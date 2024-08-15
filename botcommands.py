@@ -3,7 +3,6 @@ import discord
 from discord.ext import commands
 import os
 import asyncio
-
 from secret import TOKEN
 
 # Define intents and create bot instance
@@ -14,12 +13,6 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Define the role required to use update commands
 REQUIRED_ROLE = "Unit Staff"
 
-# Initialize the bot with intents and a command prefix
-intents = discord.Intents.default()
-intents.message_content = True  # Enable the intent to read message content
-
-client = commands.Bot(command_prefix='!', intents=intents)
-
 # Dictionary to map categories to their display names and descriptions
 category_mappings = {
     "certs": {"title": "Certifications", "description": "All achievable certifications"},
@@ -29,25 +22,6 @@ category_mappings = {
     "badges": {"title": "Badges", "description": "All available badges and how to earn them"},
     "sme": {"title": "Subject Matter Experts", "description": "List of subject matter experts"}
 }
-
-@client.command()
-async def certs(ctx):
-    embed = discord.Embed(
-        title=category_mappings["certs"]["title"],
-        description=category_mappings["certs"]["description"],
-        color=discord.Color.blue()
-    )
-    await ctx.send(embed=embed)
-
-# Similarly, define other commands like info, docs, ranks, etc.
-@client.command()
-async def info(ctx):
-    embed = discord.Embed(
-        title=category_mappings["info"]["title"],
-        description=category_mappings["info"]["description"],
-        color=discord.Color.blue()
-    )
-    await ctx.send(embed=embed)
 
 # Mapping of categories to their respective JSON file paths
 CATEGORY_JSON_FILES = {
@@ -90,8 +64,8 @@ async def show(ctx, category: str):
         return
 
     embed = discord.Embed(
-        title=category.capitalize(),
-        description=f"Entries in the {category} category.",
+        title=category_mappings[category]["title"],
+        description=f"Entries in the {category_mappings[category]['title']} category.",
         color=discord.Color.blue()
     )
 
@@ -193,7 +167,7 @@ async def update(ctx, category: str):
     except asyncio.TimeoutError:
         await ctx.send("You took too long to respond. Please start the operation again.")
 
-# ALL COMMAMNDS
+# ALL COMMANDS
 @bot.command(name='certs', aliases=['certifications'], help="Shows all Certifications.")
 async def certs(ctx):
     await show(ctx, 'certs')
@@ -218,7 +192,7 @@ async def docs(ctx):
 async def ranks(ctx):
     await show(ctx, 'ranks')
 
-# Command that responds with a specific message
+# Command that responds with a personalized message
 @bot.command(name='habibi', help="Responds with a personalized message.")
 async def habibi(ctx):
     # Get the user's name
@@ -230,7 +204,7 @@ async def habibi(ctx):
 
 # Command that responds with a specific message
 @bot.command(name='evesjoke', help="Diddle East")
-async def habibi(ctx):
+async def evesjoke(ctx):
     # Send the response message
     await ctx.send("Diddy is didling off to the diddle east. - Eve Makya")
 
