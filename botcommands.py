@@ -14,6 +14,33 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Define the role required to use update commands
 REQUIRED_ROLE = "Unit Staff"
 
+# Dictionary to map categories to their display names
+category_mappings = {
+    "certs": "Certifications",
+    "info": "Information",
+    "docs": "Documentation",
+    "ranks": "Ranks Information",
+    "badges": "Badges",
+    "sme": "Subject Matter Experts"
+}
+
+async def create_embed(category):
+    # Ensure the category is defined and process it
+    if not category:
+        raise ValueError("Category must be provided.")
+    
+    # Use the mapping if it exists, otherwise capitalize the category
+    display_category = category_mappings.get(category.lower(), category.capitalize())
+
+    # Create the embed with the adjusted title
+    embed = discord.Embed(
+        title=display_category,
+        description=f"Entries in the {display_category} category.",
+        color=discord.Color.blue()
+    )
+
+    return embed
+
 # Mapping of categories to their respective JSON file paths
 CATEGORY_JSON_FILES = {
     "ranks": "Data/ranks.json",
