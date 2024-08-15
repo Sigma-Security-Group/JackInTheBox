@@ -65,7 +65,7 @@ async def show(ctx, category: str):
 
     embed = discord.Embed(
         title=category_mappings[category]["title"],
-        description=f"Entries in the {category_mappings[category]['title']} category.",
+        description=category_info["description"],
         color=discord.Color.blue()
     )
 
