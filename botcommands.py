@@ -63,9 +63,12 @@ async def show(ctx, category: str):
         await ctx.send(f"No entries found in `{category}` category.")
         return
 
+    # Fetch the title and description from category_mappings
+    category_info = category_mappings.get(category, {"title": category.capitalize(), "description": "No description available"})
+    
     embed = discord.Embed(
-        title=category_mappings[category]["title"],
-        description=category_info["description"],
+        title=category_info["title"],  # Use title from category_mappings
+        description=category_info["description"],  # Use description from category_mappings
         color=discord.Color.blue()
     )
 
