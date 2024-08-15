@@ -189,7 +189,7 @@ async def habibi(ctx):
     # Get the user's name
     user_name = ctx.author.name
     # Create a personalized message
-    response = f"{user_name} is Diddy's Habibi"
+    response = f"{user_name} is Diddy's Habibi but loves Jack the most"
     # Send the response message
     await ctx.send(response)
 
