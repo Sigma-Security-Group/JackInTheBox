@@ -10,7 +10,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 ui = UI(bot)
 
 # Specify the ID of the channel where you want to send the commendations
-TARGET_CHANNEL_ID = 123456789012345678  # Replace with your target channel ID
+TARGET_CHANNEL_ID = 1109263109526396938  # Replace with your target channel ID
 
 @bot.event
 async def on_ready():
