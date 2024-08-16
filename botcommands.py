@@ -15,7 +15,7 @@ REQUIRED_ROLE = "Unit Staff"
 
 # ID of the channel where update logs will be sent
 LOG_CHANNEL_ID = 825039647456755772
-COMMENDATIONS_CHANNEL_ID =   # Replace with the actual ID of the commendations channel
+COMMENDATIONS_CHANNEL_ID = 1109263109526396938 # Replace with the actual ID of the commendations channel
 
 # Dictionary to map categories to their display names and descriptions
 category_mappings = {
