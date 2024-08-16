@@ -1,7 +1,6 @@
 import json
 import discord
 from discord.ext import commands
-from discord_interactions import Interaction, Modal, TextInput
 import os
 import asyncio
 from secret import TOKEN
@@ -16,7 +15,7 @@ REQUIRED_ROLE = "Unit Staff"
 
 # ID of the channel where update logs will be sent
 LOG_CHANNEL_ID = 825039647456755772
-TARGET_CHANNEL_ID = 1109263109526396938
+COMMENDATIONS_CHANNEL_ID = 123456789012345678  # Replace with the actual ID of the commendations channel
 
 # Dictionary to map categories to their display names and descriptions
 category_mappings = {
@@ -237,40 +236,43 @@ async def habibi(ctx):
 async def evesjoke(ctx):
     await ctx.send("Diddy is didling off to the diddle east. - Eve Makya")
 
-@update.error
-async def update_error(ctx, error):
-    if isinstance(error, commands.MissingRole):
-        await ctx.send(f"This command can only be used by {REQUIRED_ROLE}.")
-
-@bot.command(name='commend', help="Shows a commendation form.")
+@bot.command(name='commend', help="Creates a commendation and sends it to the commendations channel.")
 async def commend(ctx):
+    # Delete the command message
     await ctx.message.delete()
-
-    modal = Modal(title="Commendation Form")
     
-    commended_input = TextInput(label="Commended", custom_id="commended_input", style=TextInput.Style.short)
-    by_input = TextInput(label="By", custom_id="by_input", style=TextInput.Style.short)
-    role_input = TextInput(label="Role", custom_id="role_input", style=TextInput.Style.short)
-    reason_input = TextInput(label="Reason", custom_id="reason_input", style=TextInput.Style.long)
+    # Prompt the user for commendation details
+    await ctx.send("Please provide the following details for the commendation:")
     
-    modal.add_item(commeded_input)
-    modal.add_item(by_input)
-    modal.add_item(role_input)
-    modal.add_item(reason_input)
+    def check(m):
+        return m.author == ctx.author and m.channel == ctx.channel
 
-    await ctx.send_modal(modal)
-
-@bot.event
-async def on_interaction(interaction: Interaction):
-    if interaction.type == Interaction.Type.modal_submit:
-        commended = interaction.data['components'][0]['components'][0]['value']
-        by = interaction.data['components'][1]['components'][0]['value']
-        role = interaction.data['components'][2]['components'][0]['value']
-        reason = interaction.data['components'][3]['components'][0]['value']
-
-        channel = bot.get_channel(TARGET_CHANNEL_ID)
+    try:
+        # Get commendation details
+        await ctx.send("**Commended:**")
+        commended_msg = await bot.wait_for('message', check=check, timeout=60.0)
+        commended = commended_msg.content.strip()
         
-        if channel:
+        await ctx.send("**By:**")
+        by_msg = await bot.wait_for('message', check=check, timeout=60.0)
+        by = by_msg.content.strip()
+        
+        await ctx.send("**Role:**")
+        role_msg = await bot.wait_for('message', check=check, timeout=60.0)
+        role = role_msg.content.strip()
+        
+        await ctx.send("**Reason:**")
+        reason_msg = await bot.wait_for('message', check=check, timeout=300.0)
+        reason = reason_msg.content.strip()
+        
+        # Delete all the user's messages
+        async for message in ctx.channel.history(limit=5):
+            if message.author == ctx.author:
+                await message.delete()
+        
+        # Send commendation to the commendations channel
+        commendations_channel = bot.get_channel(COMMENDATIONS_CHANNEL_ID)
+        if commendations_channel:
             try:
                 message = (
                     f"**Commended:** {commended}\n"
@@ -279,13 +281,21 @@ async def on_interaction(interaction: Interaction):
                     f"**Reason:** {reason}"
                 )
                 
-                await channel.send(message)
-                await interaction.send("Thank you for the commendation!")
+                await commendations_channel.send(message)
+                await ctx.send("Thank you for the commendation!")
             except discord.Forbidden:
-                print(f"Permission error: Bot does not have permission to send messages in channel {TARGET_CHANNEL_ID}")
+                print(f"Permission error: Bot does not have permission to send messages in channel {COMMENDATIONS_CHANNEL_ID}")
             except Exception as e:
                 print(f"An error occurred: {e}")
         else:
-            print("Channel not found!")
+            print("Commendations channel not found!")
+
+    except asyncio.TimeoutError:
+        await ctx.send("You took too long to respond. Please start the commendation process again.")
+
+@update.error
+async def update_error(ctx, error):
+    if isinstance(error, commands.MissingRole):
+        await ctx.send(f"This command can only be used by {REQUIRED_ROLE}.")
 
 bot.run(TOKEN)
