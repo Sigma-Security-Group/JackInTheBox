@@ -13,6 +13,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Define the role required to use update commands
 REQUIRED_ROLE = "Unit Staff"
 
+# ID of the channel where update logs will be sent
+LOG_CHANNEL_ID = 825039647456755772
+
 # Dictionary to map categories to their display names and descriptions
 category_mappings = {
     "certs": {"title": "Certifications", "description": "All achievable certifications."},
@@ -48,6 +51,36 @@ def load_json(file_path):
 def save_json(file_path, data):
     with open(file_path, 'w') as f:
         json.dump(data, f, indent=4)
+
+# Function to log changes made via the update command
+async def log_update(ctx, action, category, entry_name, old_desc=None, new_desc=None):
+    # Get the user who made the change
+    user = ctx.author
+
+    # Prepare the embed message
+    embed = discord.Embed(
+        title=f"Update in `{category_mappings[category]['title']}` Category",
+        description=f"**Action**: {action.capitalize()}\n**Entry**: {entry_name}",
+        color=discord.Color.green(),
+        timestamp=ctx.message.created_at  # Adds a timestamp to the embed
+    )
+
+    # Add details based on the action
+    if action == 'add':
+        embed.add_field(name="Description", value=new_desc, inline=False)
+    elif action == 'update':
+        embed.add_field(name="Old Description", value=old_desc, inline=False)
+        embed.add_field(name="New Description", value=new_desc, inline=False)
+    elif action == 'delete':
+        embed.add_field(name="Deleted Description", value=old_desc, inline=False)
+
+    # Footer with the user who performed the action
+    embed.set_footer(text=f"Performed by: {user.name}#{user.discriminator}")
+
+    # Send the embed to the specified log channel
+    log_channel = bot.get_channel(LOG_CHANNEL_ID)
+    if log_channel:
+        await log_channel.send(embed=embed)
 
 # Generalized command to display entries from a category
 @bot.command(name='show', help="Shows all entries in a category. Usage: !show [category]")
@@ -119,6 +152,9 @@ async def update(ctx, category: str):
             save_json(CATEGORY_JSON_FILES[category], data)
             await ctx.send(f"Entry `{name}` added to `{category}` successfully.")
 
+            # Log the addition
+            await log_update(ctx, 'add', category, name, new_desc=description)
+
         elif operation == 'update':
             if not data:
                 await ctx.send(f"No entries found in `{category}` to update.")
@@ -134,13 +170,17 @@ async def update(ctx, category: str):
                 await ctx.send(f"No entry named `{name}` found in `{category}`. Operation cancelled.")
                 return
 
-            await ctx.send(f"Current description for `{name}`:\n{data[name]}\n\nEnter the **new description**:")
+            old_description = data[name]  # Save old description for logging
+            await ctx.send(f"Current description for `{name}`:\n{old_description}\n\nEnter the **new description**:")
             desc_msg = await bot.wait_for('message', check=check, timeout=300.0)
-            description = desc_msg.content.strip()
+            new_description = desc_msg.content.strip()
 
-            data[name] = description
+            data[name] = new_description
             save_json(CATEGORY_JSON_FILES[category], data)
             await ctx.send(f"Entry `{name}` in `{category}` updated successfully.")
+
+            # Log the update
+            await log_update(ctx, 'update', category, name, old_desc=old_description, new_desc=new_description)
 
         elif operation == 'delete':
             if not data:
@@ -157,6 +197,8 @@ async def update(ctx, category: str):
                 await ctx.send(f"No entry named `{name}` found in `{category}`. Operation cancelled.")
                 return
 
+            old_description = data[name]  # Save description for logging
+
             await ctx.send(f"Are you sure you want to delete `{name}` from `{category}`? Type `yes` to confirm.")
 
             confirm_msg = await bot.wait_for('message', check=check, timeout=30.0)
@@ -164,6 +206,9 @@ async def update(ctx, category: str):
                 del data[name]
                 save_json(CATEGORY_JSON_FILES[category], data)
                 await ctx.send(f"Entry `{name}` deleted from `{category}` successfully.")
+
+                # Log the deletion
+                await log_update(ctx, 'delete', category, name, old_desc=old_description)
             else:
                 await ctx.send("Deletion cancelled.")
 
