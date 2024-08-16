@@ -17,9 +17,6 @@ REQUIRED_ROLE = "Unit Staff"
 
 # ID of the channel where update logs will be sent
 LOG_CHANNEL_ID = 825039647456755772
-
-# ID of the channel where update logs will be sent
-LOG_CHANNEL_ID = 825039647456755772
 TARGET_CHANNEL_ID = 1109263109526396938
 
 # Dictionary to map categories to their display names and descriptions
@@ -48,7 +45,6 @@ async def on_ready():
 
 def load_json(file_path):
     if not os.path.exists(file_path):
-        # If the file doesn't exist, create an empty JSON structure
         with open(file_path, 'w') as f:
             json.dump({}, f)
     with open(file_path, 'r') as f:
@@ -58,20 +54,16 @@ def save_json(file_path, data):
     with open(file_path, 'w') as f:
         json.dump(data, f, indent=4)
 
-# Function to log changes made via the update command
 async def log_update(ctx, action, category, entry_name, old_desc=None, new_desc=None):
-    # Get the user who made the change
     user = ctx.author
 
-    # Prepare the embed message
     embed = discord.Embed(
         title=f"Update in `{category_mappings[category]['title']}` Category",
         description=f"**Action**: {action.capitalize()}\n**Entry**: {entry_name}",
         color=discord.Color.green(),
-        timestamp=ctx.message.created_at  # Adds a timestamp to the embed
+        timestamp=ctx.message.created_at
     )
 
-    # Add details based on the action
     if action == 'add':
         embed.add_field(name="Description", value=new_desc, inline=False)
     elif action == 'update':
@@ -80,15 +72,12 @@ async def log_update(ctx, action, category, entry_name, old_desc=None, new_desc=
     elif action == 'delete':
         embed.add_field(name="Deleted Description", value=old_desc, inline=False)
 
-    # Footer with the user who performed the action
     embed.set_footer(text=f"Performed by: {user.name}#{user.discriminator}")
 
-    # Send the embed to the specified log channel
     log_channel = bot.get_channel(LOG_CHANNEL_ID)
     if log_channel:
         await log_channel.send(embed=embed)
 
-# Generalized command to display entries from a category
 @bot.command(name='show', help="Shows all entries in a category. Usage: !show [category]")
 async def show(ctx, category: str):
     category = category.lower()
@@ -102,12 +91,11 @@ async def show(ctx, category: str):
         await ctx.send(f"No entries found in `{category}` category.")
         return
 
-    # Fetch the title and description from category_mappings
     category_info = category_mappings.get(category, {"title": category.capitalize(), "description": "No description available"})
     
     embed = discord.Embed(
-        title=category_info["title"],  # Use title from category_mappings
-        description=category_info["description"],  # Use description from category_mappings
+        title=category_info["title"],
+        description=category_info["description"],
         color=discord.Color.blue()
     )
 
@@ -116,7 +104,6 @@ async def show(ctx, category: str):
 
     await ctx.send(embed=embed)
 
-# Command to interactively add, update, or delete entries
 @bot.command(name='update', help="Add, update, or delete entries in a category.")
 @commands.has_role(REQUIRED_ROLE)
 async def update(ctx, category: str):
@@ -141,7 +128,6 @@ async def update(ctx, category: str):
             return
 
         if operation == 'add':
-            # Adding a new entry
             await ctx.send(f"Enter the **name** of the new entry to add to `{category}`:")
             name_msg = await bot.wait_for('message', check=check, timeout=60.0)
             name = name_msg.content.strip()
@@ -151,14 +137,13 @@ async def update(ctx, category: str):
                 return
 
             await ctx.send(f"Enter the **description** for `{name}`:")
-            desc_msg = await bot.wait_for('message', check=check, timeout=300.0)  # Increased timeout for longer descriptions
+            desc_msg = await bot.wait_for('message', check=check, timeout=300.0)
             description = desc_msg.content.strip()
 
             data[name] = description
             save_json(CATEGORY_JSON_FILES[category], data)
             await ctx.send(f"Entry `{name}` added to `{category}` successfully.")
 
-            # Log the addition
             await log_update(ctx, 'add', category, name, new_desc=description)
 
         elif operation == 'update':
@@ -176,7 +161,7 @@ async def update(ctx, category: str):
                 await ctx.send(f"No entry named `{name}` found in `{category}`. Operation cancelled.")
                 return
 
-            old_description = data[name]  # Save old description for logging
+            old_description = data[name]
             await ctx.send(f"Current description for `{name}`:\n{old_description}\n\nEnter the **new description**:")
             desc_msg = await bot.wait_for('message', check=check, timeout=300.0)
             new_description = desc_msg.content.strip()
@@ -185,7 +170,6 @@ async def update(ctx, category: str):
             save_json(CATEGORY_JSON_FILES[category], data)
             await ctx.send(f"Entry `{name}` in `{category}` updated successfully.")
 
-            # Log the update
             await log_update(ctx, 'update', category, name, old_desc=old_description, new_desc=new_description)
 
         elif operation == 'delete':
@@ -203,7 +187,7 @@ async def update(ctx, category: str):
                 await ctx.send(f"No entry named `{name}` found in `{category}`. Operation cancelled.")
                 return
 
-            old_description = data[name]  # Save description for logging
+            old_description = data[name]
 
             await ctx.send(f"Are you sure you want to delete `{name}` from `{category}`? Type `yes` to confirm.")
 
@@ -213,7 +197,6 @@ async def update(ctx, category: str):
                 save_json(CATEGORY_JSON_FILES[category], data)
                 await ctx.send(f"Entry `{name}` deleted from `{category}` successfully.")
 
-                # Log the deletion
                 await log_update(ctx, 'delete', category, name, old_desc=old_description)
             else:
                 await ctx.send("Deletion cancelled.")
@@ -221,7 +204,6 @@ async def update(ctx, category: str):
     except asyncio.TimeoutError:
         await ctx.send("You took too long to respond. Please start the operation again.")
 
-# ALL COMMANDS
 @bot.command(name='certs', aliases=['certifications'], help="Shows all Certifications.")
 async def certs(ctx):
     await show(ctx, 'certs')
@@ -246,23 +228,16 @@ async def docs(ctx):
 async def ranks(ctx):
     await show(ctx, 'ranks')
 
-# Command that responds with a personalized message
 @bot.command(name='habibi', help="Responds with a personalized message.")
 async def habibi(ctx):
-    # Get the user's name
     user_name = ctx.author.name
-    # Create a personalized message
     response = f"{user_name} is Diddy's Habibi but loves Jack the most"
-    # Send the response message
     await ctx.send(response)
 
-# Command that responds with a specific message
 @bot.command(name='evesjoke', help="Diddle East")
 async def evesjoke(ctx):
-    # Send the response message
     await ctx.send("Diddy is didling off to the diddle east. - Eve Makya")
 
-# Error handler for missing role
 @update.error
 async def update_error(ctx, error):
     if isinstance(error, commands.MissingRole):
@@ -270,35 +245,28 @@ async def update_error(ctx, error):
 
 @bot.command()
 async def commend(ctx):
-    # Delete the user's command message
     await ctx.message.delete()
     
-    # Create the modal
     modal = Modal(title="Commendation Form")
     
-    # Add text input fields
     commended_input = TextInput(label="Commended", custom_id="commended_input", style=TextInput.Style.short)
     by_input = TextInput(label="By", custom_id="by_input", style=TextInput.Style.short)
     role_input = TextInput(label="Role", custom_id="role_input", style=TextInput.Style.short)
     reason_input = TextInput(label="Reason", custom_id="reason_input", style=TextInput.Style.long)
     
-    # Add fields to modal
     modal.add_item(commended_input)
     modal.add_item(by_input)
     modal.add_item(role_input)
     modal.add_item(reason_input)
 
-    # Send the modal
     await ctx.send_modal(modal)
 
 @ui.modal_submit('commended_input')
 async def on_modal_submit(ctx, commended, by, role, reason):
-    # Get the target channel
     channel = bot.get_channel(TARGET_CHANNEL_ID)
     
     if channel:
         try:
-            # Format the message
             message = (
                 f"**Commended:** {commended}\n"
                 f"**By:** {by}\n"
@@ -306,7 +274,6 @@ async def on_modal_submit(ctx, commended, by, role, reason):
                 f"**Reason:** {reason}"
             )
             
-            # Send the message to the specified channel
             await channel.send(message)
         except discord.Forbidden:
             print(f"Permission error: Bot does not have permission to send messages in channel {TARGET_CHANNEL_ID}")
