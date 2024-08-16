@@ -15,7 +15,7 @@ REQUIRED_ROLE = "Unit Staff"
 
 # ID of the channel where update logs will be sent
 LOG_CHANNEL_ID = 825039647456755772
-COMMENDATIONS_CHANNEL_ID = 123456789012345678  # Replace with the actual ID of the commendations channel
+COMMENDATIONS_CHANNEL_ID =   # Replace with the actual ID of the commendations channel
 
 # Dictionary to map categories to their display names and descriptions
 category_mappings = {
@@ -236,41 +236,39 @@ async def habibi(ctx):
 async def evesjoke(ctx):
     await ctx.send("Diddy is didling off to the diddle east. - Eve Makya")
 
-@bot.command(name='commend', help="Creates a commendation and sends it to the commendations channel.")
+@bot.command(name='commend', help="Shows a commendation form.")
 async def commend(ctx):
-    # Delete the command message
-    await ctx.message.delete()
-    
-    # Prompt the user for commendation details
-    await ctx.send("Please provide the following details for the commendation:")
-    
+    await ctx.message.delete()  # Delete the command message immediately
+
     def check(m):
         return m.author == ctx.author and m.channel == ctx.channel
 
+    # Ask for the Commended person's name
+    await ctx.send("Please enter the **name** of the person being commended:")
     try:
-        # Get commendation details
-        await ctx.send("**Commended:**")
         commended_msg = await bot.wait_for('message', check=check, timeout=60.0)
         commended = commended_msg.content.strip()
-        
-        await ctx.send("**By:**")
+        await commended_msg.delete()  # Delete the user's message
+
+        # Ask for the name of the person making the commendation
+        await ctx.send("Please enter your **name**:")
         by_msg = await bot.wait_for('message', check=check, timeout=60.0)
         by = by_msg.content.strip()
-        
-        await ctx.send("**Role:**")
+        await by_msg.delete()  # Delete the user's message
+
+        # Ask for the role of the commended person
+        await ctx.send("Please enter the **role** of the person being commended:")
         role_msg = await bot.wait_for('message', check=check, timeout=60.0)
         role = role_msg.content.strip()
-        
-        await ctx.send("**Reason:**")
-        reason_msg = await bot.wait_for('message', check=check, timeout=300.0)
+        await role_msg.delete()  # Delete the user's message
+
+        # Ask for the reason for the commendation
+        await ctx.send("Please enter the **reason** for the commendation:")
+        reason_msg = await bot.wait_for('message', check=check, timeout=60.0)
         reason = reason_msg.content.strip()
-        
-        # Delete all the user's messages
-        async for message in ctx.channel.history(limit=5):
-            if message.author == ctx.author:
-                await message.delete()
-        
-        # Send commendation to the commendations channel
+        await reason_msg.delete()  # Delete the user's message
+
+        # Send the commendation message to the commendations channel
         commendations_channel = bot.get_channel(COMMENDATIONS_CHANNEL_ID)
         if commendations_channel:
             try:
@@ -280,15 +278,14 @@ async def commend(ctx):
                     f"**Role:** {role}\n"
                     f"**Reason:** {reason}"
                 )
-                
                 await commendations_channel.send(message)
                 await ctx.send("Thank you for the commendation!")
             except discord.Forbidden:
-                print(f"Permission error: Bot does not have permission to send messages in channel {COMMENDATIONS_CHANNEL_ID}")
+                await ctx.send(f"Permission error: Bot does not have permission to send messages in channel {COMMENDATIONS_CHANNEL_ID}")
             except Exception as e:
-                print(f"An error occurred: {e}")
+                await ctx.send(f"An error occurred: {e}")
         else:
-            print("Commendations channel not found!")
+            await ctx.send("Commendations channel not found!")
 
     except asyncio.TimeoutError:
         await ctx.send("You took too long to respond. Please start the commendation process again.")
