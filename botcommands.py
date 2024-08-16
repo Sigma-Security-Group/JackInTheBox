@@ -238,12 +238,20 @@ async def evesjoke(ctx):
 
 @bot.command(name='commend', help="Shows a commendation form.")
 async def commend(ctx):
-    await ctx.message.delete()  # Delete the command message immediately
+    # Delete the command message immediately
+    await ctx.message.delete()
 
     def check(m):
         return m.author == ctx.author and m.channel == ctx.channel
 
     try:
+        # Ask for the operation name (title of the commendation)
+        operation_question = await ctx.send("Please enter the **operation name** or title of the commendation:")
+        operation_msg = await bot.wait_for('message', check=check, timeout=60.0)
+        operation = operation_msg.content.strip()
+        await operation_question.delete()  # Delete the question
+        await operation_msg.delete()  # Delete the user's response
+
         # Ask for the Commended person's name
         commended_question = await ctx.send("Please enter the **name** of the person being commended:")
         commended_msg = await bot.wait_for('message', check=check, timeout=60.0)
@@ -272,16 +280,19 @@ async def commend(ctx):
         await reason_question.delete()  # Delete the question
         await reason_msg.delete()  # Delete the user's response
 
-        # Create and send the commendation embed
+        # Create and send the commendation message
         commendations_channel = bot.get_channel(COMMENDATIONS_CHANNEL_ID)
         if commendations_channel:
             try:
-                embed = discord.Embed(
-                    title="New Commendation",
-                    description=f"**Commended:** {commended}\n**By:** {by}\n**Role:** {role}\n**Reason:** {reason}",
-                    color=discord.Color.green()
+                message = (
+                    f"Commendation for {commended}\n"
+                    f"**Operation Name:** {operation}\n"
+                    f"**Commended:** {commended}\n"
+                    f"**By:** {by}\n"
+                    f"**Role:** {role}\n"
+                    f"**Reason:** {reason}"
                 )
-                await commendations_channel.send(embed=embed)
+                await commendations_channel.send(message)
                 await ctx.send("Thank you for the commendation!")
             except discord.Forbidden:
                 await ctx.send(f"Permission error: Bot does not have permission to send messages in channel {COMMENDATIONS_CHANNEL_ID}")
@@ -292,6 +303,7 @@ async def commend(ctx):
 
     except asyncio.TimeoutError:
         await ctx.send("You took too long to respond. Please start the commendation process again.")
+
 
 
 @update.error
