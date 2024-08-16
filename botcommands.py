@@ -1,7 +1,7 @@
 import json
 import discord
 from discord.ext import commands
-from discord_ui import UI, Modal, TextInput
+from discord_interactions import CommandContext, Interaction, Modal, TextInput
 import os
 import asyncio
 from secret import TOKEN
