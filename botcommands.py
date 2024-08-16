@@ -1,7 +1,7 @@
 import json
 import discord
 from discord.ext import commands
-from discord_interactions import CommandContext, Interaction, Modal, TextInput
+from discord_interactions import Interaction, Modal, TextInput
 import os
 import asyncio
 from secret import TOKEN
@@ -253,7 +253,7 @@ async def commend(ctx):
     role_input = TextInput(label="Role", custom_id="role_input", style=TextInput.Style.short)
     reason_input = TextInput(label="Reason", custom_id="reason_input", style=TextInput.Style.long)
     
-    modal.add_item(commended_input)
+    modal.add_item(commeded_input)
     modal.add_item(by_input)
     modal.add_item(role_input)
     modal.add_item(reason_input)
