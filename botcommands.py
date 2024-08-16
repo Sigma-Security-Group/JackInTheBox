@@ -285,12 +285,11 @@ async def commend(ctx):
         if commendations_channel:
             try:
                 message = (
-                    f"Commendation for {commended}\n"
-                    f"**Operation Name:** {operation}\n"
-                    f"**Commended:** {commended}\n"
-                    f"**By:** {by}\n"
-                    f"**Role:** {role}\n"
-                    f"**Reason:** {reason}"
+                    f"Operation Name: {operation}\n"
+                    f"Commended: {commended}\n"
+                    f"By: {by}\n"
+                    f"Role: {role}\n"
+                    f"Reason: {reason}"
                 )
                 await commendations_channel.send(message)
                 await ctx.send("Thank you for the commendation!")
