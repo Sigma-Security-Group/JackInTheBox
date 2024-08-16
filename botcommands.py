@@ -10,7 +10,6 @@ from secret import TOKEN
 intents = discord.Intents.default()
 intents.message_content = True  # Ensure the bot can read message content
 bot = commands.Bot(command_prefix="!", intents=intents)
-ui = UI(bot)
 
 # Define the role required to use update commands
 REQUIRED_ROLE = "Unit Staff"
@@ -243,10 +242,10 @@ async def update_error(ctx, error):
     if isinstance(error, commands.MissingRole):
         await ctx.send(f"This command can only be used by {REQUIRED_ROLE}.")
 
-@bot.command()
+@bot.command(name='commend', help="Shows a commendation form.")
 async def commend(ctx):
     await ctx.message.delete()
-    
+
     modal = Modal(title="Commendation Form")
     
     commended_input = TextInput(label="Commended", custom_id="commended_input", style=TextInput.Style.short)
@@ -261,25 +260,32 @@ async def commend(ctx):
 
     await ctx.send_modal(modal)
 
-@ui.modal_submit('commended_input')
-async def on_modal_submit(ctx, commended, by, role, reason):
-    channel = bot.get_channel(TARGET_CHANNEL_ID)
-    
-    if channel:
-        try:
-            message = (
-                f"**Commended:** {commended}\n"
-                f"**By:** {by}\n"
-                f"**Role:** {role}\n"
-                f"**Reason:** {reason}"
-            )
-            
-            await channel.send(message)
-        except discord.Forbidden:
-            print(f"Permission error: Bot does not have permission to send messages in channel {TARGET_CHANNEL_ID}")
-        except Exception as e:
-            print(f"An error occurred: {e}")
-    else:
-        print("Channel not found!")
+@bot.event
+async def on_interaction(interaction: Interaction):
+    if interaction.type == Interaction.Type.modal_submit:
+        commended = interaction.data['components'][0]['components'][0]['value']
+        by = interaction.data['components'][1]['components'][0]['value']
+        role = interaction.data['components'][2]['components'][0]['value']
+        reason = interaction.data['components'][3]['components'][0]['value']
+
+        channel = bot.get_channel(TARGET_CHANNEL_ID)
+        
+        if channel:
+            try:
+                message = (
+                    f"**Commended:** {commended}\n"
+                    f"**By:** {by}\n"
+                    f"**Role:** {role}\n"
+                    f"**Reason:** {reason}"
+                )
+                
+                await channel.send(message)
+                await interaction.send("Thank you for the commendation!")
+            except discord.Forbidden:
+                print(f"Permission error: Bot does not have permission to send messages in channel {TARGET_CHANNEL_ID}")
+            except Exception as e:
+                print(f"An error occurred: {e}")
+        else:
+            print("Channel not found!")
 
 bot.run(TOKEN)
