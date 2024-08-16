@@ -243,42 +243,45 @@ async def commend(ctx):
     def check(m):
         return m.author == ctx.author and m.channel == ctx.channel
 
-    # Ask for the Commended person's name
-    await ctx.send("Please enter the **name** of the person being commended:")
     try:
+        # Ask for the Commended person's name
+        commended_question = await ctx.send("Please enter the **name** of the person being commended:")
         commended_msg = await bot.wait_for('message', check=check, timeout=60.0)
         commended = commended_msg.content.strip()
-        await commended_msg.delete()  # Delete the user's message
+        await commended_question.delete()  # Delete the question
+        await commended_msg.delete()  # Delete the user's response
 
         # Ask for the name of the person making the commendation
-        await ctx.send("Please enter your **name**:")
+        by_question = await ctx.send("Please enter your **name**:")
         by_msg = await bot.wait_for('message', check=check, timeout=60.0)
         by = by_msg.content.strip()
-        await by_msg.delete()  # Delete the user's message
+        await by_question.delete()  # Delete the question
+        await by_msg.delete()  # Delete the user's response
 
         # Ask for the role of the commended person
-        await ctx.send("Please enter the **role** of the person being commended:")
+        role_question = await ctx.send("Please enter the **role** of the person being commended:")
         role_msg = await bot.wait_for('message', check=check, timeout=60.0)
         role = role_msg.content.strip()
-        await role_msg.delete()  # Delete the user's message
+        await role_question.delete()  # Delete the question
+        await role_msg.delete()  # Delete the user's response
 
         # Ask for the reason for the commendation
-        await ctx.send("Please enter the **reason** for the commendation:")
+        reason_question = await ctx.send("Please enter the **reason** for the commendation:")
         reason_msg = await bot.wait_for('message', check=check, timeout=60.0)
         reason = reason_msg.content.strip()
-        await reason_msg.delete()  # Delete the user's message
+        await reason_question.delete()  # Delete the question
+        await reason_msg.delete()  # Delete the user's response
 
-        # Send the commendation message to the commendations channel
+        # Create and send the commendation embed
         commendations_channel = bot.get_channel(COMMENDATIONS_CHANNEL_ID)
         if commendations_channel:
             try:
-                message = (
-                    f"**Commended:** {commended}\n"
-                    f"**By:** {by}\n"
-                    f"**Role:** {role}\n"
-                    f"**Reason:** {reason}"
+                embed = discord.Embed(
+                    title="New Commendation",
+                    description=f"**Commended:** {commended}\n**By:** {by}\n**Role:** {role}\n**Reason:** {reason}",
+                    color=discord.Color.green()
                 )
-                await commendations_channel.send(message)
+                await commendations_channel.send(embed=embed)
                 await ctx.send("Thank you for the commendation!")
             except discord.Forbidden:
                 await ctx.send(f"Permission error: Bot does not have permission to send messages in channel {COMMENDATIONS_CHANNEL_ID}")
@@ -289,6 +292,7 @@ async def commend(ctx):
 
     except asyncio.TimeoutError:
         await ctx.send("You took too long to respond. Please start the commendation process again.")
+
 
 @update.error
 async def update_error(ctx, error):
