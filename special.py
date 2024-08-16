@@ -56,14 +56,13 @@ async def on_modal_submit(ctx, commended, by, role, reason):
             
             # Send the message to the specified channel
             await channel.send(message)
-            
-            # Acknowledge the modal submission
-            await ctx.send("Your commendation has been recorded!")
         except discord.Forbidden:
             print(f"Permission error: Bot does not have permission to send messages in channel {TARGET_CHANNEL_ID}")
         except Exception as e:
             print(f"An error occurred: {e}")
     else:
         print("Channel not found!")
+
+            
 
 bot.run(TOKEN)
