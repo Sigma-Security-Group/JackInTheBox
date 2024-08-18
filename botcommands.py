@@ -283,17 +283,33 @@ async def commend(ctx):
             await ctx.send("Cancelled.")
             return
 
-        # Ask for the Commended person's name
-        commended_question = await ctx.send("Please enter the **name** of the person being commended:")
+        # Ask for the Commended person's name or mention
+        commended_question = await ctx.send("Please enter the **name** or mention the person being commended:")
         commended_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
-        commended = commended_msg.content.strip()
+        commended_input = commended_msg.content.strip()
 
         if in_guild:
             await commended_question.delete()
             await commended_msg.delete()
 
-        if commended.lower() == "cancel":
+        if commended_input.lower() == "cancel":
             await ctx.send("Cancelled.")
+            return
+
+        # Attempt to resolve the mentioned user
+        commended_user = None
+        if commended_msg.mentions:
+            commended_user = commended_msg.mentions[0]  # Take the first mentioned user
+        else:
+            # Attempt to find the user by name in a guild context
+            if in_guild:
+                commended_user = discord.utils.get(ctx.guild.members, name=commended_input)
+            else:
+                # In DMs, no direct access to guild members, so leave as string
+                commended_user = commended_input
+
+        if not commended_user:
+            await ctx.send(f"Could not find a user by the name or mention: {commended_input}. Please try again.")
             return
 
         # Ask for the name of the person making the commendation
@@ -335,9 +351,11 @@ async def commend(ctx):
         commendations_channel = bot.get_channel(COMMENDATIONS_CHANNEL_ID)
         if commendations_channel:
             try:
+                commended_name = commended_user if isinstance(commended_user, str) else commended_user.mention
+
                 message = (
                     f"Operation Name: {operation}\n"
-                    f"Commended: {commended}\n"
+                    f"Commended: {commended_name}\n"
                     f"By: {by}\n"
                     f"Role: {role}\n"
                     f"Reason: {reason}"
