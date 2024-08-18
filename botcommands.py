@@ -1,8 +1,10 @@
 import json
-import discord
-from discord.ext import commands
 import os
 import asyncio
+import logging
+import discord
+from discord.ext import commands
+
 from secret import TOKEN
 
 # Define intents and create bot instance
@@ -15,7 +17,6 @@ REQUIRED_ROLE = "Unit Staff"
 
 # ID of the channel where update logs will be sent
 LOG_CHANNEL_ID = 825039647456755772
-
 COMMENDATIONS_CHANNEL_ID = 1109263109526396938 # Replace with the actual ID of the commendations channel
 
 # Dictionary to map categories to their display names and descriptions
@@ -65,19 +66,22 @@ async def log_update(ctx, action, category, entry_name, old_desc=None, new_desc=
 
     if action == 'add':
         embed.add_field(name="Description", value=new_desc, inline=False)
+        logging.info(f"{user.name}#{user.discriminator} added entry '{entry_name}' to '{category}' with description '{new_desc}'")
     elif action == 'update':
         embed.add_field(name="Old Description", value=old_desc, inline=False)
         embed.add_field(name="New Description", value=new_desc, inline=False)
+        logging.info(f"{user.name}#{user.discriminator} updated entry '{entry_name}' in '{category}' with new description '{new_desc}' from old description '{old_desc}'")
     elif action == 'delete':
         embed.add_field(name="Deleted Description", value=old_desc, inline=False)
+        logging.info(f"{user.name}#{user.discriminator} deleted entry '{entry_name}' from '{category}' with description '{old_desc}'")
 
     embed.set_footer(text=f"Performed by: {user.name}#{user.discriminator}")
 
-    log_channel = bot.get_channel(LOG_CHANNEL_ID)
-    if log_channel:
+    log_channel = bot.get_channel(AUDIT_LOGS_CHANNEL_ID)
+    if log_channel is not None:
         await log_channel.send(embed=embed)
 
-@bot.command(name='show', help="Shows all entries in a category. Usage: !show [category]")
+@bot.command(name='show', help="Shows all entries in a category. Usage: !show [category]")  # type: ignore
 async def show(ctx, category: str):
     category = category.lower()
     if category not in CATEGORY_JSON_FILES:
@@ -103,7 +107,7 @@ async def show(ctx, category: str):
 
     await ctx.send(embed=embed)
 
-@bot.command(name='update', help="Add, update, or delete entries in a category.")
+@bot.command(name='update', help="Add, update, or delete entries in a category.")  # type: ignore
 @commands.has_role(REQUIRED_ROLE)
 async def update(ctx, category: str):
     category = category.lower()
@@ -115,12 +119,16 @@ async def update(ctx, category: str):
 
     await ctx.send(f"Do you want to `add`, `update`, or `delete` an entry in `{category}`? Type your choice.")
 
-    def check(m):
+    def matchesContext(m):
         return m.author == ctx.author and m.channel == ctx.channel
 
     try:
-        operation_msg = await bot.wait_for('message', check=check, timeout=60.0)
-        operation = operation_msg.content.lower()
+        operation_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
+        operation = operation_msg.content.strip().lower()
+
+        if operation == "cancel":
+            await ctx.send("Cancelled.")
+            return
 
         if operation not in ['add', 'update', 'delete']:
             await ctx.send("Invalid operation. Please start over and choose `add`, `update`, or `delete`.")
@@ -128,15 +136,19 @@ async def update(ctx, category: str):
 
         if operation == 'add':
             await ctx.send(f"Enter the **name** of the new entry to add to `{category}`:")
-            name_msg = await bot.wait_for('message', check=check, timeout=60.0)
+            name_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
             name = name_msg.content.strip()
+
+            if name.lower() == "cancel":
+                await ctx.send("Cancelled.")
+                return
 
             if name in data:
                 await ctx.send(f"An entry with the name `{name}` already exists in `{category}`. Operation cancelled.")
                 return
 
             await ctx.send(f"Enter the **description** for `{name}`:")
-            desc_msg = await bot.wait_for('message', check=check, timeout=300.0)
+            desc_msg = await bot.wait_for('message', check=matchesContext, timeout=300.0)
             description = desc_msg.content.strip()
 
             data[name] = description
@@ -153,8 +165,12 @@ async def update(ctx, category: str):
             entries_list = '\n'.join([f"- {entry}" for entry in data.keys()])
             await ctx.send(f"Current entries in `{category}`:\n{entries_list}\n\nEnter the **name** of the entry you want to update:")
 
-            name_msg = await bot.wait_for('message', check=check, timeout=60.0)
+            name_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
             name = name_msg.content.strip()
+
+            if name.lower() == "cancel":
+                await ctx.send("Cancelled.")
+                return
 
             if name not in data:
                 await ctx.send(f"No entry named `{name}` found in `{category}`. Operation cancelled.")
@@ -162,7 +178,7 @@ async def update(ctx, category: str):
 
             old_description = data[name]
             await ctx.send(f"Current description for `{name}`:\n{old_description}\n\nEnter the **new description**:")
-            desc_msg = await bot.wait_for('message', check=check, timeout=300.0)
+            desc_msg = await bot.wait_for('message', check=matchesContext, timeout=300.0)
             new_description = desc_msg.content.strip()
 
             data[name] = new_description
@@ -179,8 +195,12 @@ async def update(ctx, category: str):
             entries_list = '\n'.join([f"- {entry}" for entry in data.keys()])
             await ctx.send(f"Current entries in `{category}`:\n{entries_list}\n\nEnter the **name** of the entry you want to delete:")
 
-            name_msg = await bot.wait_for('message', check=check, timeout=60.0)
+            name_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
             name = name_msg.content.strip()
+
+            if name.lower() == "cancel":
+                await ctx.send("Cancelled.")
+                return
 
             if name not in data:
                 await ctx.send(f"No entry named `{name}` found in `{category}`. Operation cancelled.")
@@ -190,7 +210,7 @@ async def update(ctx, category: str):
 
             await ctx.send(f"Are you sure you want to delete `{name}` from `{category}`? Type `yes` to confirm.")
 
-            confirm_msg = await bot.wait_for('message', check=check, timeout=30.0)
+            confirm_msg = await bot.wait_for('message', check=matchesContext, timeout=30.0)
             if confirm_msg.content.lower() == 'yes':
                 del data[name]
                 save_json(CATEGORY_JSON_FILES[category], data)
@@ -243,58 +263,72 @@ async def commend(ctx):
     if ctx.guild:
         await ctx.message.delete()
 
-    def check(m):
+    def matchesContext(m):
         return m.author == ctx.author and m.channel == ctx.channel
 
     try:
         # Ask for the operation name (title of the commendation)
         operation_question = await ctx.send("Please enter the **operation name** or title of the commendation:")
-        operation_msg = await bot.wait_for('message', check=check, timeout=60.0)
+        operation_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
         operation = operation_msg.content.strip()
         await operation_question.delete()
         await operation_msg.delete()
 
+        if operation.lower() == "cancel":
+            await ctx.send("Cancelled.")
+            return
+
         # Ask for the Commended person's name
         commended_question = await ctx.send("Please enter the **name** of the person being commended:")
-        commended_msg = await bot.wait_for('message', check=check, timeout=60.0)
+        commended_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
         commended = commended_msg.content.strip()
         await commended_question.delete()
         await commended_msg.delete()
 
+        if commended.lower() == "cancel":
+            await ctx.send("Cancelled.")
+            return
+
         # Ask for the name of the person making the commendation
         by_question = await ctx.send("Please enter your **name**:")
-        by_msg = await bot.wait_for('message', check=check, timeout=60.0)
+        by_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
         by = by_msg.content.strip()
         await by_question.delete()
         await by_msg.delete()
 
+        if by.lower() == "cancel":
+            await ctx.send("Cancelled.")
+            return
+
         # Ask for the role of the commended person
         role_question = await ctx.send("Please enter the **role** of the person being commended:")
-        role_msg = await bot.wait_for('message', check=check, timeout=60.0)
+        role_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
         role = role_msg.content.strip()
         await role_question.delete()
         await role_msg.delete()
 
+        if role.lower() == "cancel":
+            await ctx.send("Cancelled.")
+            return
+
         # Ask for the reason for the commendation
         reason_question = await ctx.send("Please enter the **reason** for the commendation:")
-        reason_msg = await bot.wait_for('message', check=check, timeout=60.0)
+        reason_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
         reason = reason_msg.content.strip()
         await reason_question.delete()
         await reason_msg.delete()
 
-        # Create the commendation message
-        message = (
-            f"Operation Name: {operation}\n"
-            f"Commended: {commended}\n"
-            f"By: {by}\n"
-            f"Role: {role}\n"
-            f"Reason: {reason}"
-        )
-
-        # Send the commendation message to the specific channel in the server
+        # Create and send the commendation message
         commendations_channel = bot.get_channel(COMMENDATIONS_CHANNEL_ID)
         if commendations_channel:
             try:
+                message = (
+                    f"Operation Name: {operation}\n"
+                    f"Commended: {commended}\n"
+                    f"By: {by}\n"
+                    f"Role: {role}\n"
+                    f"Reason: {reason}"
+                )
                 await commendations_channel.send(message)
                 await ctx.send("Thank you for the commendation! It has been submitted successfully.")
             except discord.Forbidden:
