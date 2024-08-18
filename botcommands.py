@@ -283,34 +283,26 @@ async def commend(ctx):
             await ctx.send("Cancelled.")
             return
 
-        # Ask for the Commended person's name or mention
-        commended_question = await ctx.send("Please enter the **name** or mention the person being commended:")
+        # Ask for the Commended person's Discord username
+        commended_question = await ctx.send("Please enter the **Discord username** (e.g., Username#1234) of the person being commended:")
         commended_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
-        commended_input = commended_msg.content.strip()
+        commended_username = commended_msg.content.strip()
 
         if in_guild:
             await commended_question.delete()
             await commended_msg.delete()
 
-        if commended_input.lower() == "cancel":
+        if commended_username.lower() == "cancel":
             await ctx.send("Cancelled.")
             return
 
-        # Attempt to resolve the mentioned user
+        # Resolve the user by username in guild context
         commended_user = None
-        if commended_msg.mentions:
-            commended_user = commended_msg.mentions[0]  # Take the first mentioned user
-        else:
-            # Attempt to find the user by name in a guild context
-            if in_guild:
-                commended_user = discord.utils.get(ctx.guild.members, name=commended_input)
-            else:
-                # In DMs, no direct access to guild members, so leave as string
-                commended_user = commended_input
+        if in_guild:
+            commended_user = discord.utils.get(ctx.guild.members, name=commended_username.split('#')[0], discriminator=commended_username.split('#')[1])
 
-        if not commended_user:
-            await ctx.send(f"Could not find a user by the name or mention: {commended_input}. Please try again.")
-            return
+        # If in DM or the user wasn't found in the guild, use the input as the username directly
+        commended_display = commended_user.mention if commended_user else commended_username
 
         # Ask for the name of the person making the commendation
         by_question = await ctx.send("Please enter your **name**:")
@@ -351,11 +343,9 @@ async def commend(ctx):
         commendations_channel = bot.get_channel(COMMENDATIONS_CHANNEL_ID)
         if commendations_channel:
             try:
-                commended_name = commended_user if isinstance(commended_user, str) else commended_user.mention
-
                 message = (
                     f"Operation Name: {operation}\n"
-                    f"Commended: {commended_name}\n"
+                    f"Commended: {commended_display}\n"  # Display the mention or the username directly
                     f"By: {by}\n"
                     f"Role: {role}\n"
                     f"Reason: {reason}"
@@ -371,6 +361,7 @@ async def commend(ctx):
 
     except asyncio.TimeoutError:
         await ctx.send("You took too long to respond. Please start the commendation process again.")
+
 
 @update.error
 async def update_error(ctx, error):
