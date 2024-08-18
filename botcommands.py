@@ -259,8 +259,11 @@ async def evesjoke(ctx):
 
 @bot.command(name='commend', help="Shows a commendation form.")
 async def commend(ctx):
+    # Check if the command was used in a DM or a guild (server) channel
+    in_guild = ctx.guild is not None
+
     # Delete the command message if it's in a guild (server)
-    if ctx.guild:
+    if in_guild:
         await ctx.message.delete()
 
     def matchesContext(m):
@@ -271,8 +274,10 @@ async def commend(ctx):
         operation_question = await ctx.send("Please enter the **operation name** or title of the commendation:")
         operation_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
         operation = operation_msg.content.strip()
-        await operation_question.delete()
-        await operation_msg.delete()
+
+        if in_guild:
+            await operation_question.delete()
+            await operation_msg.delete()
 
         if operation.lower() == "cancel":
             await ctx.send("Cancelled.")
@@ -282,8 +287,10 @@ async def commend(ctx):
         commended_question = await ctx.send("Please enter the **name** of the person being commended:")
         commended_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
         commended = commended_msg.content.strip()
-        await commended_question.delete()
-        await commended_msg.delete()
+
+        if in_guild:
+            await commended_question.delete()
+            await commended_msg.delete()
 
         if commended.lower() == "cancel":
             await ctx.send("Cancelled.")
@@ -293,8 +300,10 @@ async def commend(ctx):
         by_question = await ctx.send("Please enter your **name**:")
         by_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
         by = by_msg.content.strip()
-        await by_question.delete()
-        await by_msg.delete()
+
+        if in_guild:
+            await by_question.delete()
+            await by_msg.delete()
 
         if by.lower() == "cancel":
             await ctx.send("Cancelled.")
@@ -304,8 +313,10 @@ async def commend(ctx):
         role_question = await ctx.send("Please enter the **role** of the person being commended:")
         role_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
         role = role_msg.content.strip()
-        await role_question.delete()
-        await role_msg.delete()
+
+        if in_guild:
+            await role_question.delete()
+            await role_msg.delete()
 
         if role.lower() == "cancel":
             await ctx.send("Cancelled.")
@@ -315,8 +326,10 @@ async def commend(ctx):
         reason_question = await ctx.send("Please enter the **reason** for the commendation:")
         reason_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
         reason = reason_msg.content.strip()
-        await reason_question.delete()
-        await reason_msg.delete()
+
+        if in_guild:
+            await reason_question.delete()
+            await reason_msg.delete()
 
         # Create and send the commendation message
         commendations_channel = bot.get_channel(COMMENDATIONS_CHANNEL_ID)
@@ -332,7 +345,7 @@ async def commend(ctx):
                 await commendations_channel.send(message)
                 await ctx.send("Thank you for the commendation! It has been submitted successfully.")
             except discord.Forbidden:
-                await ctx.send(f"Permission error: Bot does not have permission to send messages in channel {COMMENDATIONS_CHANNEL_ID}")
+                await ctx.send(f"Permission error: Bot does not have permission to send messages in the commendations channel.")
             except Exception as e:
                 await ctx.send(f"An error occurred: {e}")
         else:
