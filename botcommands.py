@@ -12,6 +12,9 @@ intents = discord.Intents.default()
 intents.message_content = True  # Ensure the bot can read message content
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+GUILD_ID = 288446755219963914
+GUILD = discord.Object(id=GUILD_ID)
+
 # Define the role required to use update commands
 REQUIRED_ROLE = "Unit Staff"
 
@@ -257,110 +260,34 @@ async def habibi(ctx):
 async def evesjoke(ctx):
     await ctx.send("Diddy is didling off to the diddle east. - Eve Makya")
 
-@bot.command(name='commend', help="Shows a commendation form.")
-async def commend(ctx):
-    # Check if the command was used in a DM or a guild (server) channel
-    in_guild = ctx.guild is not None
+@discord.app_commands.command(name="commend")
+@discord.app_commands.guilds(GUILD)
+@discord.app_commands.describe(
+    user = "User to commend.",
+    role = "The user's role in the operation.",
+    reason = "Why you commend these user."
+)
+async def commend(interaction: discord.Interaction, user: discord.User, role: str, reason: str) -> None:
+    """ Commend a user that has done well in an operation. """
+    logging.info(f"{interaction.user.display_name} ({interaction.user.id}) commended user {user.display_name} ({user.id}).")
+    guild = bot.get_guild(GUILD_ID)
+    if guild is None:
+        logging.exception("commend: guild is None")
+        return
 
-    # Delete the command message if it's in a guild (server)
-    if in_guild:
-        await ctx.message.delete()
+    channelCommendations = await guild.fetch_channel(COMMENDATIONS_CHANNEL_ID)
+    if not isinstance(channelCommendations, discord.TextChannel):
+        logging.exception("commend: channelCommendations is not discord.TextChannel")
+        return
 
-    def matchesContext(m):
-        return m.author == ctx.author and m.channel == ctx.channel
+    await channelCommendations.send(
+        f"Commended: {user.mention}\n"
+        f"By: {interaction.user.mention}\n"
+        f"Role: {role}\n"
+        f"Reason: {reason}"
+    )
 
-    try:
-        # Ask for the operation name (title of the commendation)
-        operation_question = await ctx.send("Please enter the **operation name** or title of the commendation:")
-        operation_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
-        operation = operation_msg.content.strip()
-
-        if in_guild:
-            await operation_question.delete()
-            await operation_msg.delete()
-
-        if operation.lower() == "cancel":
-            await ctx.send("Cancelled.")
-            return
-
-        # Ask for the Commended person's Discord username
-        commended_question = await ctx.send("Please enter the **Discord username** (e.g., Username#1234) of the person being commended:")
-        commended_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
-        commended_username = commended_msg.content.strip()
-
-        if in_guild:
-            await commended_question.delete()
-            await commended_msg.delete()
-
-        if commended_username.lower() == "cancel":
-            await ctx.send("Cancelled.")
-            return
-
-        # Resolve the user by username in guild context
-        commended_user = None
-        if in_guild:
-            commended_user = discord.utils.get(ctx.guild.members, name=commended_username.split('#')[0], discriminator=commended_username.split('#')[1])
-
-        # If in DM or the user wasn't found in the guild, use the input as the username directly
-        commended_display = commended_user.mention if commended_user else commended_username
-
-        # Ask for the name of the person making the commendation
-        by_question = await ctx.send("Please enter your **name**:")
-        by_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
-        by = by_msg.content.strip()
-
-        if in_guild:
-            await by_question.delete()
-            await by_msg.delete()
-
-        if by.lower() == "cancel":
-            await ctx.send("Cancelled.")
-            return
-
-        # Ask for the role of the commended person
-        role_question = await ctx.send("Please enter the **role** of the person being commended:")
-        role_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
-        role = role_msg.content.strip()
-
-        if in_guild:
-            await role_question.delete()
-            await role_msg.delete()
-
-        if role.lower() == "cancel":
-            await ctx.send("Cancelled.")
-            return
-
-        # Ask for the reason for the commendation
-        reason_question = await ctx.send("Please enter the **reason** for the commendation:")
-        reason_msg = await bot.wait_for('message', check=matchesContext, timeout=60.0)
-        reason = reason_msg.content.strip()
-
-        if in_guild:
-            await reason_question.delete()
-            await reason_msg.delete()
-
-        # Create and send the commendation message
-        commendations_channel = bot.get_channel(COMMENDATIONS_CHANNEL_ID)
-        if commendations_channel:
-            try:
-                message = (
-                    f"Operation Name: {operation}\n"
-                    f"Commended: {commended_display}\n"  # Display the mention or the username directly
-                    f"By: {by}\n"
-                    f"Role: {role}\n"
-                    f"Reason: {reason}"
-                )
-                await commendations_channel.send(message)
-                await ctx.send("Thank you for the commendation! It has been submitted successfully.")
-            except discord.Forbidden:
-                await ctx.send(f"Permission error: Bot does not have permission to send messages in the commendations channel.")
-            except Exception as e:
-                await ctx.send(f"An error occurred: {e}")
-        else:
-            await ctx.send("Commendations channel not found!")
-
-    except asyncio.TimeoutError:
-        await ctx.send("You took too long to respond. Please start the commendation process again.")
+    await interaction.response.send_message(f"Thank you for commending! It has been submitted successfully in {channelCommendations.mention}.", ephemeral=True, delete_after=10.0)
 
 
 @update.error
