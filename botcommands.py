@@ -16,7 +16,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 REQUIRED_ROLE = "Unit Staff"
 
 # ID of the channel where update logs will be sent
-LOG_CHANNEL_ID = 825039647456755772
+AUDIT_LOGS_CHANNEL_ID = 825039647456755772
 COMMENDATIONS_CHANNEL_ID = 1109263109526396938 # Replace with the actual ID of the commendations channel
 
 # Dictionary to map categories to their display names and descriptions
@@ -368,4 +368,15 @@ async def update_error(ctx, error):
     if isinstance(error, commands.MissingRole):
         await ctx.send(f"This command can only be used by {REQUIRED_ROLE}.")
 
-bot.run(TOKEN)
+@bot.command(name='logout', help="Logs out the bot (only Devs).")
+async def logout(ctx):
+    if ctx.author.id not in [
+        782304285387128832,  # Jack
+        216027379506741249,  # Adrian
+    ]:
+        await ctx.send("You are not authorized to use this command.")
+        return
+    bot.logout()
+
+if __name__ == "__main__":
+    bot.run(TOKEN)
