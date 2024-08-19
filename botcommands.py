@@ -376,7 +376,7 @@ async def logout(ctx):
     ]:
         await ctx.send("You are not authorized to use this command.")
         return
-    bot.logout()
+    bot.close()
 
 if __name__ == "__main__":
     bot.run(TOKEN)
