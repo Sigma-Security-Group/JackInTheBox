@@ -46,7 +46,6 @@ CATEGORY_JSON_FILES = {
 async def on_ready():
     bot.tree.clear_commands(guild=GUILD)
     bot.tree.add_command(commend, guild=GUILD)
-    bot.tree.add_command(hello, guild=GUILD)
     await bot.tree.sync(guild=GUILD)
     logging.info(f'Logged in as {bot.user.name}')
 
