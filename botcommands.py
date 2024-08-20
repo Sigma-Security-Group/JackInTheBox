@@ -44,7 +44,11 @@ CATEGORY_JSON_FILES = {
 
 @bot.event
 async def on_ready():
-    print(f'Logged in as {bot.user.name}')
+    bot.tree.clear_commands(guild=GUILD)
+    bot.tree.add_command(commend, guild=GUILD)
+    bot.tree.add_command(hello, guild=GUILD)
+    await bot.tree.sync(guild=GUILD)
+    logging.info(f'Logged in as {bot.user.name}')
 
 def load_json(file_path):
     if not os.path.exists(file_path):
