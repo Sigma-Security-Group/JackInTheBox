@@ -266,12 +266,12 @@ async def evesjoke(ctx):
 @discord.app_commands.command(name="commend")
 @discord.app_commands.guilds(GUILD)
 @discord.app_commands.describe(
-    user = "User to commend.",
+    user = "Person to commend.",
     role = "The user's role in the operation.",
     reason = "Why you commend these user."
 )
 async def commend(interaction: discord.Interaction, user: discord.User, role: str, reason: str) -> None:
-    """ Commend a user that has done well in an operation. """
+    """ Commend a person that has done well in an operation. """
     logging.info(f"{interaction.user.display_name} ({interaction.user.id}) commended user {user.display_name} ({user.id}).")
     guild = bot.get_guild(GUILD_ID)
     if guild is None:
