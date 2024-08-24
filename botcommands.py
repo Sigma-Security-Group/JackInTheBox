@@ -272,7 +272,7 @@ async def evesjoke(ctx):
 )
 async def commend(interaction: discord.Interaction, person: discord.User, role: str, reason: str) -> None:
     """ Commend a person that has done well in an operation. """
-    logging.info(f"{interaction.user.display_name} ({interaction.user.id}) commended person {user.display_name} ({user.id}).")
+    logging.info(f"{interaction.user.display_name} ({interaction.user.id}) commended person {person.display_name} ({person.id}).")
     guild = bot.get_guild(GUILD_ID)
     if guild is None:
         logging.exception("commend: guild is None")
@@ -284,7 +284,7 @@ async def commend(interaction: discord.Interaction, person: discord.User, role: 
         return
 
     await channelCommendations.send(
-        f"Commended: {user.mention}\n"
+        f"Commended: {person.mention}\n"
         f"By: {interaction.user.mention}\n"
         f"Role: {role}\n"
         f"Reason: {reason}"
