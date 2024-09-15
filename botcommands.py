@@ -21,6 +21,7 @@ REQUIRED_ROLE = "Unit Staff"
 # ID of the channel where update logs will be sent
 AUDIT_LOGS_CHANNEL_ID = 825039647456755772
 COMMENDATIONS_CHANNEL_ID = 1109263109526396938 # Replace with the actual ID of the commendations channel
+reports_log = {}
 
 # Dictionary to map categories to their display names and descriptions
 category_mappings = {
@@ -307,6 +308,97 @@ async def logout(ctx):
         await ctx.send("You are not authorized to use this command.")
         return
     await bot.close()
+
+@bot.command(name='Incident_Report')
+async def incident_report(ctx):
+    # Store a new empty report for this user
+    report_data = {
+        'subject': '',
+        'person_reported': '',
+        'staff_handler': '',
+        'second_staff': '',
+        'details': '',
+        'evidence': '',
+        'ticket_numbers': '',
+        'moderation_action': ''
+    }
+    
+    # Step 1: Ask for the subject of the report
+    await ctx.send(
+        "Please enter the subject of the report:",
+        components=[Button(style=ButtonStyle.green, label="Proceed", custom_id="subject")]
+    )
+
+    # Event handling based on user interaction
+    async def proceed_report(user_id):
+        # Step 2: Ask for the person being reported
+        await ctx.send(
+            "Enter the name and Discord ID of the person being reported:",
+            components=[Button(style=ButtonStyle.green, label="Proceed", custom_id="person_reported")]
+        )
+        # Add further steps as needed (rest of the fields similar to below)
+        # After all fields are filled, store the report in the logger
+        reports_log[user_id] = report_data
+
+        logger.info(f"Report added for user ID: {user_id}")
+
+# Command to fetch all reports of a particular user by Discord ID
+@bot.command(name='get_reports')
+async def get_reports(ctx, user_id: int):
+    # Check if there are any reports for the given user ID
+    if user_id in reports_log:
+        report = reports_log[user_id]
+        embed = discord.Embed(title=f"Reports for User ID: {user_id}", color=0x3498db)
+        embed.add_field(name="Subject", value=report['subject'], inline=False)
+        embed.add_field(name="Person Reported", value=report['person_reported'], inline=False)
+        embed.add_field(name="Staff Handler", value=report['staff_handler'], inline=False)
+        embed.add_field(name="Second Staff", value=report.get('second_staff', 'None'), inline=False)
+        embed.add_field(name="Details", value=report['details'], inline=False)
+        embed.add_field(name="Evidence", value=report['evidence'], inline=False)
+        embed.add_field(name="Ticket Numbers", value=report['ticket_numbers'], inline=False)
+        embed.add_field(name="Moderation Action", value=report['moderation_action'], inline=False)
+
+        await ctx.send(embed=embed)
+    else:
+        await ctx.send(f"No reports found for user ID: {user_id}")
+
+# Event: On button click, proceed through the report steps
+@bot.event
+async def on_button_click(interaction: Interaction):
+    user_id = interaction.user.id
+
+    # Delete the previous message for cleanup
+    await interaction.message.delete()
+
+    # Handle the rest of the interaction steps like collecting data
+    # Example for subject
+    if interaction.custom_id == "subject":
+        await interaction.send(
+            "Enter the name and Discord ID of the person being reported:",
+            components=[Button(style=ButtonStyle.green, label="Proceed", custom_id="person_reported")]
+        )
+    elif interaction.custom_id == "person_reported":
+        await interaction.send(
+            "Tag the staff handler:",
+            components=[Button(style=ButtonStyle.green, label="Proceed", custom_id="staff_handler")]
+        )
+    # Additional steps for other fields
+
+# Delete all previous messages after command completion
+async def cleanup_messages(ctx, messages):
+    for msg in messages:
+        try:
+            await msg.delete()
+        except discord.Forbidden:
+            pass
+        except discord.HTTPException:
+            pass
+
+@bot.event
+async def on_command_completion(ctx):
+    # Fetch recent messages from the channel including both user and bot messages
+    messages = await ctx.channel.history(limit=10).flatten()
+    await cleanup_messages(ctx, messages)
 
 if __name__ == "__main__":
     bot.run(TOKEN)
