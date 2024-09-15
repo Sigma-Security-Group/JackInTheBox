@@ -6,6 +6,7 @@ from discord.ext import commands
 from discord import app_commands
 from datetime import datetime
 import pytz  # For time zone conversion
+from dateutil import parser  # For flexible date parsing
 
 from secret import TOKEN
 
@@ -17,9 +18,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 GUILD_ID = 288446755219963914
 GUILD = discord.Object(id=GUILD_ID)
 
-# Channel IDs for commendations and incident report logs
-COMMENDATIONS_CHANNEL_ID = 1109263109526396938  # Replace with the actual ID of the commendations channel
-REPORT_LOG_CHANNEL_ID = 889752071815974952  # Replace with the report log channel ID
+# Channel IDs
+COMMENDATIONS_CHANNEL_ID = 1109263109526396938
+REPORT_LOG_CHANNEL_ID = 889752071815974952
+UNIT_STAFF_CHANNEL_ID = 740368938239524995  # Channel for unit staff notifications
 REQUIRED_ROLE = "Unit Staff"
 
 # Report counter and incident report storage
@@ -33,11 +35,12 @@ logging.basicConfig(level=logging.INFO)
 @bot.event
 async def on_ready():
     try:
-        bot.tree.clear_commands(guild=GUILD)  # Clear commands for the specific guild
+        bot.tree.clear_commands(guild=GUILD)
         bot.tree.add_command(commend, guild=GUILD)
         bot.tree.add_command(incident_report, guild=GUILD)
         bot.tree.add_command(user_report_file, guild=GUILD)
-        await bot.tree.sync(guild=GUILD)  # Sync the commands with the guild
+        bot.tree.add_command(delete_report, guild=GUILD)
+        await bot.tree.sync(guild=GUILD)
 
         logging.info(f"Logged in as {bot.user.name}")
         logging.info(f"Slash commands synced for guild {GUILD_ID}")
@@ -119,13 +122,13 @@ class IncidentReportModal(discord.ui.Modal):
         handler = interaction.user  # The person who submitted the report
 
         try:
-            date_time_obj = datetime.strptime(date_time, "%Y-%m-%d %H:%M")
+            date_time_obj = parser.parse(date_time)
             date_time_utc = date_time_obj.astimezone(pytz.UTC)
-        except ValueError:
-            await interaction.response.send_message("Invalid date format. Please use `YYYY-MM-DD HH:MM`.", ephemeral=True)
+        except (ValueError, parser.ParserError):
+            await interaction.response.send_message("Invalid date format. Please use a recognizable format.", ephemeral=True)
             return
 
-        embed = discord.Embed(title=report_id, color=discord.Color.blue(), timestamp=discord.utils.utcnow())
+        embed = discord.Embed(title=report_id, color=discord.Color.red(), timestamp=discord.utils.utcnow())
         embed.add_field(name="Incident Subject", value=subject, inline=False)
         embed.add_field(name="Incident Handler", value=handler.mention, inline=False)
         embed.add_field(name="Incident Date and Time (UTC)", value=date_time_utc.strftime('%Y-%m-%d %H:%M UTC'), inline=False)
@@ -135,13 +138,18 @@ class IncidentReportModal(discord.ui.Modal):
         embed.add_field(name="Incident Outcome", value=outcome, inline=False)
 
         report_log_channel = bot.get_channel(REPORT_LOG_CHANNEL_ID)
-        if report_log_channel:
+        unit_staff_channel = bot.get_channel(UNIT_STAFF_CHANNEL_ID)
+        if report_log_channel and unit_staff_channel:
+            # Send report to the logging channel
             report_message = await report_log_channel.send(embed=embed)
 
             reported_user_id = subject.split()[-1]  # Extract the Discord ID from the subject
             if reported_user_id not in incident_reports:
                 incident_reports[reported_user_id] = []
             incident_reports[reported_user_id].append((report_id, report_message.jump_url))
+
+            # Send confirmation to the unit staff channel
+            await unit_staff_channel.send(f"New incident report filed as **{report_id}** by {handler.mention}.")
 
         await interaction.response.send_message(f"Incident report successfully filed as **{report_id}**", ephemeral=True)
 
@@ -168,9 +176,39 @@ async def user_report_file(interaction: discord.Interaction, user_id: str):
     else:
         await interaction.response.send_message(f"No reports found for user ID: {user_id}", ephemeral=True)
 
+# Delete a report command
+@discord.app_commands.command(name="delete_report", description="Delete a specific incident report by its title")
+@discord.app_commands.guilds(GUILD_ID)
+@discord.app_commands.checks.has_role(REQUIRED_ROLE)
+@discord.app_commands.describe(report_id="The ID of the report to delete (e.g., Incident Report 0362)")
+async def delete_report(interaction: discord.Interaction, report_id: str):
+    global report_counter
+
+    try:
+        report_number = int(report_id.split()[2])
+    except ValueError:
+        await interaction.response.send_message("Invalid report ID format. Number extraction failed.", ephemeral=True)
+        return
+
+    if report_number > report_counter:
+        await interaction.response.send_message("Report ID number is out of range.", ephemeral=True)
+        return
+
+    if report_number < report_counter:
+        report_counter = report_number - 1
+
+    for user_reports in incident_reports.values():
+        for i, (r_id, _) in enumerate(user_reports):
+            if r_id == report_id:
+                user_reports.pop(i)
+                break
+
+    await interaction.response.send_message(f"Report with ID **{report_id}** has been deleted and counter adjusted.", ephemeral=True)
+
 # Error handling for role check failure
 @incident_report.error
 @user_report_file.error
+@delete_report.error
 async def role_error(interaction: discord.Interaction, error):
     if isinstance(error, app_commands.errors.MissingRole):
         await interaction.response.send_message(f"You must have the `{REQUIRED_ROLE}` role to use this command.", ephemeral=True)
