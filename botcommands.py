@@ -21,7 +21,7 @@ GUILD = discord.Object(id=GUILD_ID)
 # Channel IDs
 COMMENDATIONS_CHANNEL_ID = 1109263109526396938
 REPORT_LOG_CHANNEL_ID = 889752071815974952
-UNIT_STAFF_CHANNEL_ID = 740368938239524995  # Channel for unit staff notifications
+UNIT_STAFF_CHANNEL_ID = 740368938239524995
 REQUIRED_ROLE = "Unit Staff"
 
 # Report counter and incident report storage
@@ -35,21 +35,24 @@ logging.basicConfig(level=logging.INFO)
 @bot.event
 async def on_ready():
     try:
-        # Clear old commands and register new ones
-        bot.tree.clear_commands(guild=GUILD)
+        logging.info("Starting command registration...")
+        await bot.tree.clear_commands(guild=GUILD)
         
+        # Register commands
         bot.tree.add_command(commend, guild=GUILD)
         bot.tree.add_command(incident_report, guild=GUILD)
         bot.tree.add_command(user_report_file, guild=GUILD)
         bot.tree.add_command(delete_report, guild=GUILD)
         
-        # Sync the commands with the guild
+        # Sync commands with the guild
         await bot.tree.sync(guild=GUILD)
-
+        
         logging.info(f"Logged in as {bot.user.name}")
         logging.info(f"Slash commands synced for guild {GUILD_ID}")
+    except discord.HTTPException as http_error:
+        logging.error(f"HTTP error during command registration or syncing: {http_error}")
     except Exception as e:
-        logging.error(f"Error during command registration: {e}")
+        logging.error(f"Unexpected error during command registration or syncing: {e}")
 
 # Basic commands
 @bot.command(name='habibi', help="Responds with a personalized message.")
@@ -142,18 +145,13 @@ class IncidentReportModal(discord.ui.Modal):
         embed.add_field(name="Incident Outcome", value=outcome, inline=False)
 
         report_log_channel = bot.get_channel(REPORT_LOG_CHANNEL_ID)
-        unit_staff_channel = bot.get_channel(UNIT_STAFF_CHANNEL_ID)
-        if report_log_channel and unit_staff_channel:
-            # Send report to the logging channel
+        if report_log_channel:
             report_message = await report_log_channel.send(embed=embed)
 
             reported_user_id = subject.split()[-1]  # Extract the Discord ID from the subject
             if reported_user_id not in incident_reports:
                 incident_reports[reported_user_id] = []
             incident_reports[reported_user_id].append((report_id, report_message.jump_url))
-
-            # Send confirmation to the unit staff channel
-            await unit_staff_channel.send(f"New incident report filed as **{report_id}** by {handler.mention}.")
 
         await interaction.response.send_message(f"Incident report successfully filed as **{report_id}**", ephemeral=True)
 
@@ -181,7 +179,7 @@ async def user_report_file(interaction: discord.Interaction, user_id: str):
         await interaction.response.send_message(f"No reports found for user ID: {user_id}", ephemeral=True)
 
 # Delete a report command
-@discord.app_commands.command(name="delete_report", description="Delete a specific incident report by its title")
+@discord.app_commands.command(name="delete_report", description="Delete a report by its ID")
 @discord.app_commands.guilds(GUILD_ID)
 @discord.app_commands.checks.has_role(REQUIRED_ROLE)
 @discord.app_commands.describe(report_id="The ID of the report to delete")
