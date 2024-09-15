@@ -7,7 +7,7 @@ from discord import app_commands
 from datetime import datetime
 import pytz
 from dateutil import parser
-from secret import TOKEN  # Ensure TOKEN is correctly defined in secret.py
+from secret import TOKEN  # Ensure TOKEN is defined in secret.py
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -49,6 +49,11 @@ async def on_ready():
     except Exception as e:
         logging.error(f"Unexpected error during command registration or syncing: {e}")
 
+@bot.event
+async def on_application_command_error(interaction: discord.Interaction, error: Exception):
+    logging.error(f"Error in command: {error}")
+    await interaction.response.send_message("An error occurred while processing your request. Please try again later.", ephemeral=True)
+
 # Commendation command
 @discord.app_commands.command(name="commend", description="Commend a person")
 @discord.app_commands.guilds(GUILD_ID)
@@ -67,17 +72,7 @@ async def commend(interaction: discord.Interaction, person: discord.User, role: 
         logging.error(f"Error in commend command: {e}")
         await interaction.response.send_message("An error occurred while processing your commendation.", ephemeral=True)
 
-@discord.app_commands.command(name="incident_report", description="Start an incident report")
-@discord.app_commands.guilds(GUILD_ID)
-@discord.app_commands.checks.has_role(REQUIRED_ROLE)
-async def incident_report(interaction: discord.Interaction):
-    try:
-        modal = IncidentReportModal(interaction)
-        await interaction.response.send_modal(modal)
-    except Exception as e:
-        logging.error(f"Error in incident_report command: {e}")
-        await interaction.response.send_message("An error occurred while opening the incident report form.", ephemeral=True)
-
+# Incident report modal
 class IncidentReportModal(discord.ui.Modal):
     def __init__(self, interaction: discord.Interaction):
         super().__init__(title="Incident Report")
@@ -136,6 +131,19 @@ class IncidentReportModal(discord.ui.Modal):
             logging.error(f"Error in IncidentReportModal callback: {e}")
             await interaction.response.send_message("An error occurred while processing the incident report.", ephemeral=True)
 
+# Incident report command
+@discord.app_commands.command(name="incident_report", description="Start an incident report")
+@discord.app_commands.guilds(GUILD_ID)
+@discord.app_commands.checks.has_role(REQUIRED_ROLE)
+async def incident_report(interaction: discord.Interaction):
+    try:
+        modal = IncidentReportModal(interaction)
+        await interaction.response.send_modal(modal)
+    except Exception as e:
+        logging.error(f"Error in incident_report command: {e}")
+        await interaction.response.send_message("An error occurred while opening the incident report form.", ephemeral=True)
+
+# Retrieve reports for a specific user
 @discord.app_commands.command(name="user_report_file", description="Retrieve all reports for a specific user by their Discord ID")
 @discord.app_commands.guilds(GUILD_ID)
 @discord.app_commands.describe(user_id="The Discord ID of the user you want to retrieve reports for")
@@ -153,6 +161,7 @@ async def user_report_file(interaction: discord.Interaction, user_id: str):
         logging.error(f"Error in user_report_file command: {e}")
         await interaction.response.send_message("An error occurred while retrieving the reports.", ephemeral=True)
 
+# Delete a report command
 @discord.app_commands.command(name="delete_report", description="Delete a report by its ID")
 @discord.app_commands.guilds(GUILD_ID)
 @discord.app_commands.checks.has_role(REQUIRED_ROLE)
