@@ -26,13 +26,23 @@ REQUIRED_ROLE = "Unit Staff"
 report_counter = 0
 incident_reports = {}
 
-# Bot on_ready event
+# Initialize logging
+logging.basicConfig(level=logging.INFO)
+
+# Bot on_ready event to register commands
 @bot.event
 async def on_ready():
-    bot.tree.clear_commands(guild=GUILD)
-    bot.tree.add_command(commend, guild=GUILD)
-    await bot.tree.sync(guild=GUILD)
-    logging.info(f'Logged in as {bot.user.name}')
+    try:
+        bot.tree.clear_commands(guild=GUILD)  # Clear commands for the specific guild
+        bot.tree.add_command(commend, guild=GUILD)
+        bot.tree.add_command(incident_report, guild=GUILD)
+        bot.tree.add_command(user_report_file, guild=GUILD)
+        await bot.tree.sync(guild=GUILD)  # Sync the commands with the guild
+
+        logging.info(f"Logged in as {bot.user.name}")
+        logging.info(f"Slash commands synced for guild {GUILD_ID}")
+    except Exception as e:
+        logging.error(f"Error during command registration: {e}")
 
 # Basic commands
 @bot.command(name='habibi', help="Responds with a personalized message.")
@@ -75,9 +85,10 @@ async def commend(interaction: discord.Interaction, person: discord.User, role: 
 
     await interaction.response.send_message(f"Thank you for commending! It has been submitted successfully in {channelCommendations.mention}.", ephemeral=True, delete_after=10.0)
 
+# Handle errors for the commend command
 @commend.error
 async def commend_error(interaction: discord.Interaction, error):
-    if isinstance(error, commands.MissingRole):
+    if isinstance(error, app_commands.errors.MissingRole):
         await interaction.response.send_message("You do not have the required role to use this command.", ephemeral=True)
 
 # Incident report modal
