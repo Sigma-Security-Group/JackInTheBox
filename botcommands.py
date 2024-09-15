@@ -35,11 +35,15 @@ logging.basicConfig(level=logging.INFO)
 @bot.event
 async def on_ready():
     try:
+        # Clear old commands and register new ones
         bot.tree.clear_commands(guild=GUILD)
+        
         bot.tree.add_command(commend, guild=GUILD)
         bot.tree.add_command(incident_report, guild=GUILD)
         bot.tree.add_command(user_report_file, guild=GUILD)
         bot.tree.add_command(delete_report, guild=GUILD)
+        
+        # Sync the commands with the guild
         await bot.tree.sync(guild=GUILD)
 
         logging.info(f"Logged in as {bot.user.name}")
@@ -180,7 +184,7 @@ async def user_report_file(interaction: discord.Interaction, user_id: str):
 @discord.app_commands.command(name="delete_report", description="Delete a specific incident report by its title")
 @discord.app_commands.guilds(GUILD_ID)
 @discord.app_commands.checks.has_role(REQUIRED_ROLE)
-@discord.app_commands.describe(report_id="The ID of the report to delete (e.g., Incident Report 0362)")
+@discord.app_commands.describe(report_id="The ID of the report to delete")
 async def delete_report(interaction: discord.Interaction, report_id: str):
     global report_counter
 
