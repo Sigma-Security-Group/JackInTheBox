@@ -34,13 +34,13 @@ incident_reports = {}
 async def on_ready():
     try:
         logging.info("Starting command registration...")
-        await bot.tree.clear_commands(guild=GUILD)
+        bot.tree.clear_commands(guild=GUILD)
         bot.tree.add_command(commend, guild=GUILD)
         bot.tree.add_command(incident_report, guild=GUILD)
         bot.tree.add_command(user_report_file, guild=GUILD)
         bot.tree.add_command(delete_report, guild=GUILD)
         await bot.tree.sync(guild=GUILD)
-        commands = await bot.tree.fetch_commands()
+        commands = await bot.tree.fetch_commands(guild=GUILD)
         logging.info(f"Commands registered: {[cmd.name for cmd in commands]}")
         logging.info(f"Logged in as {bot.user.name}")
         logging.info(f"Slash commands synced for guild {GUILD_ID}")
