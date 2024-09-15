@@ -1,3 +1,55 @@
+import json
+import os
+import logging
+import discord
+from discord.ext import commands
+from discord import app_commands
+from datetime import datetime
+import pytz
+from dateutil import parser
+from secret import TOKEN  # Ensure TOKEN is correctly defined in secret.py
+
+# Initialize logging
+logging.basicConfig(level=logging.INFO)
+
+# Define intents and create bot instance
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+GUILD_ID = 288446755219963914
+GUILD = discord.Object(id=GUILD_ID)
+
+# Channel IDs
+COMMENDATIONS_CHANNEL_ID = 1109263109526396938
+REPORT_LOG_CHANNEL_ID = 889752071815974952
+UNIT_STAFF_CHANNEL_ID = 740368938239524995
+REQUIRED_ROLE = "Unit Staff"
+
+# Report counter and incident report storage
+report_counter = 0
+incident_reports = {}
+
+@bot.event
+async def on_ready():
+    try:
+        logging.info("Starting command registration...")
+        await bot.tree.clear_commands(guild=GUILD)
+        bot.tree.add_command(commend, guild=GUILD)
+        bot.tree.add_command(incident_report, guild=GUILD)
+        bot.tree.add_command(user_report_file, guild=GUILD)
+        bot.tree.add_command(delete_report, guild=GUILD)
+        await bot.tree.sync(guild=GUILD)
+        commands = await bot.tree.fetch_commands()
+        logging.info(f"Commands registered: {[cmd.name for cmd in commands]}")
+        logging.info(f"Logged in as {bot.user.name}")
+        logging.info(f"Slash commands synced for guild {GUILD_ID}")
+    except discord.HTTPException as http_error:
+        logging.error(f"HTTP error during command registration or syncing: {http_error}")
+    except Exception as e:
+        logging.error(f"Unexpected error during command registration or syncing: {e}")
+
+# Commendation command
 @discord.app_commands.command(name="commend", description="Commend a person")
 @discord.app_commands.guilds(GUILD_ID)
 async def commend(interaction: discord.Interaction, person: discord.User, role: str, reason: str):
@@ -26,7 +78,6 @@ async def incident_report(interaction: discord.Interaction):
         logging.error(f"Error in incident_report command: {e}")
         await interaction.response.send_message("An error occurred while opening the incident report form.", ephemeral=True)
 
-# Define the modal class with proper error handling
 class IncidentReportModal(discord.ui.Modal):
     def __init__(self, interaction: discord.Interaction):
         super().__init__(title="Incident Report")
@@ -100,7 +151,7 @@ async def user_report_file(interaction: discord.Interaction, user_id: str):
             await interaction.response.send_message(f"No reports found for user ID: {user_id}", ephemeral=True)
     except Exception as e:
         logging.error(f"Error in user_report_file command: {e}")
-        await interaction.response.send_message("An error occurred while retrieving the user reports.", ephemeral=True)
+        await interaction.response.send_message("An error occurred while retrieving the reports.", ephemeral=True)
 
 @discord.app_commands.command(name="delete_report", description="Delete a report by its ID")
 @discord.app_commands.guilds(GUILD_ID)
@@ -113,13 +164,13 @@ async def delete_report(interaction: discord.Interaction, report_id: str):
         if report_number >= report_counter:
             await interaction.response.send_message(f"Report ID {report_id} does not exist.", ephemeral=True)
             return
-        
+
         for user_reports in incident_reports.values():
             for i, (r_id, r_url) in enumerate(user_reports):
                 if r_id == report_id:
                     del user_reports[i]
                     break
-        
+
         report_counter -= 1
         await interaction.response.send_message(f"Report {report_id} deleted successfully. The report counter has been adjusted to {str(report_counter).zfill(4)}.", ephemeral=True)
     except ValueError:
@@ -137,3 +188,6 @@ async def role_error(interaction: discord.Interaction, error):
     else:
         logging.error(f"Error in role check: {error}")
         await interaction.response.send_message("An error occurred while processing your request.", ephemeral=True)
+
+if __name__ == "__main__":
+    bot.run(TOKEN)
