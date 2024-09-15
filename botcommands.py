@@ -77,12 +77,12 @@ class IncidentReportModal(discord.ui.Modal):
     def __init__(self, interaction: discord.Interaction):
         super().__init__(title="Incident Report")
         self.interaction = interaction
-        self.add_item(discord.ui.InputText(label="Incident Subject (Person of Report)", placeholder="Enter Discord username and ID"))
-        self.add_item(discord.ui.InputText(label="Incident Date and Time", placeholder="Format: YYYY-MM-DD HH:MM", required=True))
-        self.add_item(discord.ui.InputText(label="Incident Details", style=discord.InputTextStyle.long, placeholder="Enter the details of the incident", required=True))
-        self.add_item(discord.ui.InputText(label="Incident Evidence", placeholder="Provide evidence (links, screenshots, etc.)", required=False))
-        self.add_item(discord.ui.InputText(label="Incident Ticket Numbers", placeholder="Enter relevant ticket numbers", required=False))
-        self.add_item(discord.ui.InputText(label="Incident Outcome", placeholder="Choose: Informal Verbal Warning, Formal Verbal Warning, Written Warning, Demotion, Kick, Ban, Blacklist"))
+        self.add_item(discord.ui.TextInput(label="Incident Subject (Person of Report)", placeholder="Enter Discord username and ID"))
+        self.add_item(discord.ui.TextInput(label="Incident Date and Time", placeholder="Format: YYYY-MM-DD HH:MM", required=True))
+        self.add_item(discord.ui.TextInput(label="Incident Details", style=discord.InputTextStyle.long, placeholder="Enter the details of the incident", required=True))
+        self.add_item(discord.ui.TextInput(label="Incident Evidence", placeholder="Provide evidence (links, screenshots, etc.)", required=False))
+        self.add_item(discord.ui.TextInput(label="Incident Ticket Numbers", placeholder="Enter relevant ticket numbers", required=False))
+        self.add_item(discord.ui.TextInput(label="Incident Outcome", placeholder="Choose: Informal Verbal Warning, Formal Verbal Warning, Written Warning, Demotion, Kick, Ban, Blacklist"))
 
     async def callback(self, interaction: discord.Interaction):
         global report_counter
