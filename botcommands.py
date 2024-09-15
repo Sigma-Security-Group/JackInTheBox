@@ -45,13 +45,13 @@ async def on_ready():
         logging.info(f"Logged in as {bot.user.name}")
         logging.info(f"Slash commands synced for guild {GUILD_ID}")
     except discord.HTTPException as http_error:
-        logging.error(f"HTTP error during command registration or syncing: {http_error}")
+        logging.exception(f"HTTP error during command registration or syncing: {http_error}")
     except Exception as e:
-        logging.error(f"Unexpected error during command registration or syncing: {e}")
+        logging.exception(f"Unexpected error during command registration or syncing: {e}")
 
 @bot.event
 async def on_application_command_error(interaction: discord.Interaction, error: Exception):
-    logging.error(f"Error in command: {error}")
+    logging.exception(f"Error in command: {error}")
     await interaction.response.send_message("An error occurred while processing your request. Please try again later.", ephemeral=True)
 
 # Commendation command
@@ -69,7 +69,7 @@ async def commend(interaction: discord.Interaction, person: discord.User, role: 
         )
         await interaction.response.send_message(f"Thank you for commending! It has been submitted successfully in {channelCommendations.mention}.", ephemeral=True, delete_after=10.0)
     except Exception as e:
-        logging.error(f"Error in commend command: {e}")
+        logging.exception(f"Error in commend command: {e}")
         await interaction.response.send_message("An error occurred while processing your commendation.", ephemeral=True)
 
 # Incident report modal
@@ -128,7 +128,7 @@ class IncidentReportModal(discord.ui.Modal):
 
             await interaction.response.send_message(f"Incident report successfully filed as **{report_id}**", ephemeral=True)
         except Exception as e:
-            logging.error(f"Error in IncidentReportModal callback: {e}")
+            logging.exception(f"Error in IncidentReportModal callback: {e}")
             await interaction.response.send_message("An error occurred while processing the incident report.", ephemeral=True)
 
 # Incident report command
@@ -140,7 +140,7 @@ async def incident_report(interaction: discord.Interaction):
         modal = IncidentReportModal(interaction)
         await interaction.response.send_modal(modal)
     except Exception as e:
-        logging.error(f"Error in incident_report command: {e}")
+        logging.exception(f"Error in incident_report command: {e}")
         await interaction.response.send_message("An error occurred while opening the incident report form.", ephemeral=True)
 
 # Retrieve reports for a specific user
@@ -158,7 +158,7 @@ async def user_report_file(interaction: discord.Interaction, user_id: str):
         else:
             await interaction.response.send_message(f"No reports found for user ID: {user_id}", ephemeral=True)
     except Exception as e:
-        logging.error(f"Error in user_report_file command: {e}")
+        logging.exception(f"Error in user_report_file command: {e}")
         await interaction.response.send_message("An error occurred while retrieving the reports.", ephemeral=True)
 
 # Delete a report command
@@ -185,7 +185,7 @@ async def delete_report(interaction: discord.Interaction, report_id: str):
     except ValueError:
         await interaction.response.send_message("Invalid report ID format. Please use `Incident Report ####`.", ephemeral=True)
     except Exception as e:
-        logging.error(f"Error in delete_report command: {e}")
+        logging.exception(f"Error in delete_report command: {e}")
         await interaction.response.send_message("An error occurred while deleting the report.", ephemeral=True)
 
 @incident_report.error
@@ -195,7 +195,7 @@ async def role_error(interaction: discord.Interaction, error):
     if isinstance(error, app_commands.errors.MissingRole):
         await interaction.response.send_message(f"You must have the `{REQUIRED_ROLE}` role to use this command.", ephemeral=True)
     else:
-        logging.error(f"Error in role check: {error}")
+        logging.exception(f"Error in role check: {error}")
         await interaction.response.send_message("An error occurred while processing your request.", ephemeral=True)
 
 if __name__ == "__main__":
