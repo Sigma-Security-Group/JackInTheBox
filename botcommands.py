@@ -112,7 +112,7 @@ async def track_operations(interaction: discord.Interaction, member: discord.Mem
         
         # Send status update message
         message_content = (
-            f"{member.mention} has attended an Operation and is on their way to becoming a Sigma Contractor. "
+            f"{member.mention} has attended an Operation and is on their way to becoming a Sigma Associate. "
             f"They have {remaining_ops} operations left."
         )
         await channelCommendations.send(message_content)
