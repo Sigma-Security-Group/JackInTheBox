@@ -27,7 +27,7 @@ UNIT_STAFF_ROLE_ID = 864443672032706560 if USE_TEST_BOT else 655465074982518805
 REQUIRED_ROLE = "Unit Staff"
 
 # Candidate Tracking - Key Information
-OPERATION_KEYWORD = "Candidate Tracking"
+OPERATION_KEYWORD = "has attended an Operation"
 TOTAL_OPERATIONS = 3 
 
 #Incident Report Fail Logging Text Boxes
@@ -80,20 +80,22 @@ async def commend(interaction: discord.Interaction, person: discord.User, role: 
         await interaction.response.send_message("An error occurred while processing your commendation.", ephemeral=True)
 
 # Candidate Tracking
+# Candidate Tracking
 @bot.tree.command(name="track_operations", description="Track operations for a selected user.")
 @app_commands.describe(member="The member whose operations you want to track.")
 async def track_operations(interaction: discord.Interaction, member: discord.Member):
     channelCommendations = bot.get_channel(COMMENDATIONS_CHANNEL_ID)
 
-    # Initialize count for User B
+    # Initialize count for the selected member
     operation_count = 1
 
     # Check previous messages in the commendation channel
     async for message in channelCommendations.history(limit=1000):
-        if member in message.mentions:
+        # Ensure the message contains the keyword "Candidate Tracking" (case-insensitive) and mentions the member
+        if OPERATION_KEYWORD.lower() in message.content.lower() and member in message.mentions:
             operation_count += 1
 
-    # Check if User B has reached the required operations
+    # Check if the member has reached the required number of operations
     if operation_count >= TOTAL_OPERATIONS:
         # Get the unit staff role by ID
         unit_staff_role = interaction.guild.get_role(UNIT_STAFF_ROLE_ID)
@@ -108,7 +110,7 @@ async def track_operations(interaction: discord.Interaction, member: discord.Mem
         # Calculate remaining operations
         remaining_ops = TOTAL_OPERATIONS - operation_count
         
-        # Send attendance message
+        # Send status update message
         message_content = (
             f"{member.mention} has attended an Operation and is on their way to becoming a Sigma Contractor. "
             f"They have {remaining_ops} operations left."
