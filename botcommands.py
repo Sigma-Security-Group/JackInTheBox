@@ -80,7 +80,6 @@ async def commend(interaction: discord.Interaction, person: discord.User, role: 
         await interaction.response.send_message("An error occurred while processing your commendation.", ephemeral=True)
 
 # Candidate Tracking
-# Candidate Tracking
 @bot.tree.command(name="track_operations", description="Track operations for a selected user.")
 @app_commands.describe(member="The member whose operations you want to track.")
 async def track_operations(interaction: discord.Interaction, member: discord.Member):
@@ -184,9 +183,12 @@ class IncidentReportModal(discord.ui.Modal):
                 "outcome": outcome,
                 "message_id": report_message.id
             }
-            incident_reports.append(new_incident_report)
-            with open("Data/incident_reports.json", "w") as f:
-                json.dump(incident_reports, f, indent=4)
+            with open("Data/incident_reports.json") as f: 
+                incident_reports = json.load(f)
+            # Ensure it's a list
+            if not isinstance(incident_reports, list):
+                logging.error("incident_reports is not a list, initializing as an empty list.")
+            incident_reports = []
             
             unit_staff_channel = bot.get_channel(UNIT_STAFF_CHANNEL_ID)
             if unit_staff_channel:
