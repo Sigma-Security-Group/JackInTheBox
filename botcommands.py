@@ -87,12 +87,19 @@ async def track_operations(interaction: discord.Interaction, member: discord.Mem
 
     # Initialize count for the selected member
     operation_count = 1
+    
+    mostRecentMessageTime = None
 
     # Check previous messages in the commendation channel
     async for message in channelCommendations.history(limit=1000):
         # Ensure the message contains the keyword "Candidate Tracking" (case-insensitive) and mentions the member
         if OPERATION_KEYWORD.lower() in message.content.lower() and member in message.mentions:
             operation_count += 1
+            if mostRecentMessageTime is None or mostRecentMessageTime < message.created_at:
+                mostRecentMessageTime = message.created_at
+    
+    if mostRecentMessageTime is not None and datetime.now(timezone.utc) - mostRecentMessageTime < timedelta(hours=1):
+        logging.debug("Skip tracking due to recent message")
 
     # Check if the member has reached the required number of operations
     if operation_count >= TOTAL_OPERATIONS:
