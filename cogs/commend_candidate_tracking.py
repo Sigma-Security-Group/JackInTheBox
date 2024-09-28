@@ -125,9 +125,8 @@ class CommendCandidateTracking(commands.Cog):
             if config.OPERATION_KEYWORD.lower() in message.content.lower() and member in message.mentions:
                 operation_count += 1
                 if mostRecentMessageTime is None or mostRecentMessageTime < message.created_at:
-                    mostRecentMessageTime = message.created_at
+                    mostRecentMessageTime = message.created_at.replace(tzinfo=None)
 
-        mostRecentMessageTime = mostRecentMessageTime.replace(tzinfo=None)
         print(mostRecentMessageTime)
         if mostRecentMessageTime is not None and datetime.utcnow() - mostRecentMessageTime < timedelta(hours=1):
             await interaction.followup.send("Error code CCT-0004 has occurred. Member has already been tracked for this operation. Please try again. If the error persists, please notify Jack MacTavish.", ephemeral=True)
