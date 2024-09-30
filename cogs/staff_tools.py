@@ -209,7 +209,7 @@ class StaffTools(commands.Cog):
     # Incident Report Error Logging
     @incident_report.error
     @delete_report.error
-    async def role_error(self, interaction: discord.Interaction, error):
+    async def role_error(self, interaction: discord.Interaction, error: commands.CommandError):
         if isinstance(error, discord.app_commands.errors.MissingRole):
             await interaction.response.send_message(f"You must have the `{config.UNIT_STAFF_ROLE_ID}` role to use this command.", ephemeral=True)
         else:

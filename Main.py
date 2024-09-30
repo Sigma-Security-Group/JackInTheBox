@@ -19,7 +19,7 @@ class JackInTheBox(commands.Bot):
         super().__init__(
             command_prefix= "-",
             intents=intents,
-            activity=discord.Activity( 
+            activity=discord.Activity(
                 type=discord.ActivityType.watching,
                 name="Diddy from the MQ-9 Reaper Drone."
             ),

@@ -6,13 +6,13 @@ import time
 import config
 from discord.ext import commands
 from datetime import datetime, timedelta
-from config import GUILD, GUILD_ID
+from config import GUILD_ID
 
 # Logging setup. // Jack
 logging.basicConfig(level=logging.INFO)
 
 class CommendCandidateTracking(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         super().__init__()
         self.bot = bot
 
@@ -33,7 +33,7 @@ class CommendCandidateTracking(commands.Cog):
             # Load performance bonuses and timestamps. // Jack
             with open("Data/performance_bonus.json") as f:
                 performance_data = json.load(f)
-            
+
             userId = str(interaction.user.id)
             current_time = time.time()
 
@@ -54,7 +54,7 @@ class CommendCandidateTracking(commands.Cog):
                 performance_data[userId]["count"] = len(valid_timestamps)
                 performance_data[userId]["totalBonus"] += performanceBonus
                 performance_data[userId]["timestamps"] = valid_timestamps
-            
+
             with open("Data/performance_bonus.json", "w") as f:
                 json.dump(performance_data, f, indent=4)
 
@@ -70,13 +70,13 @@ class CommendCandidateTracking(commands.Cog):
             # Respond to the user with an ephemeral message. // Jack
             await interaction.response.send_message(
                 f"Thank you for commending! It has been submitted successfully in {channelCommendations.mention}.",
-                ephemeral=True, 
+                ephemeral=True,
                 delete_after=10.0
             )
 
         except Exception as e:
             logging.exception(f"Error in commend command: {e}")
-            await interaction.response.send_message("An unexpected error occurred while processing your commendation.", 
+            await interaction.response.send_message("An unexpected error occurred while processing your commendation.",
                 ephemeral=True)
 
     #===================================
@@ -87,7 +87,7 @@ class CommendCandidateTracking(commands.Cog):
     async def performancebonus(self, interaction: discord.Interaction):
         with open("Data/performance_bonus.json") as f:
             performance_bonus = json.load(f)
-        
+
         userId = str(interaction.user.id)
         totalBonus = performance_bonus.get(userId, {"totalBonus": 0})["totalBonus"]
         await interaction.response.send_message(f"You have earned a total of **${totalBonus:,.2f}** in performance bonuses.", ephemeral=False)
@@ -99,7 +99,7 @@ class CommendCandidateTracking(commands.Cog):
     @discord.app_commands.guilds(GUILD_ID)
     @discord.app_commands.checks.has_any_role(config.UNIT_STAFF_ROLE_ID, config.CURATOR_ROLE_ID, config.ZEUS_ROLE_ID, config.ZEUSINTRAINING_ROLE_ID)
     async def track_a_candidate(self, interaction: discord.Interaction, member: discord.Member):
-        
+
         # Acknowledge the interaction early. // Jack
         await interaction.response.send_message(f"Tracking progress for {member.display_name}", ephemeral=True)
 
@@ -108,7 +108,7 @@ class CommendCandidateTracking(commands.Cog):
         if not channelCommendations:
             await interaction.followup.send("Commendations channel not found.", ephemeral=True)
             return
-        
+
         # Initialize operation count for the selected member. // Jack
         operation_count = 1
 
@@ -131,8 +131,8 @@ class CommendCandidateTracking(commands.Cog):
         if mostRecentMessageTime is not None and datetime.utcnow() - mostRecentMessageTime < timedelta(hours=1):
             await interaction.followup.send("Error code CCT-0004 has occurred. Member has already been tracked for this operation. Please try again. If the error persists, please notify Jack MacTavish.", ephemeral=True)
             logging.debug("Skip tracking due to recent message.")
-            return 
-        
+            return
+
         # Check for the total number of operation attendance of the command target. // Jack
         if operation_count >= config.TOTAL_OPERATIONS:
             # The command target has reached 3/3 operations. Send eligibility message. // Jack
