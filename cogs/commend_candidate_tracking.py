@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 logging.basicConfig(level=logging.INFO)
 
 class CommendCandidateTracking(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: commands.Bot) -> None:
         super().__init__()
         self.bot = bot
 
@@ -21,7 +21,7 @@ class CommendCandidateTracking(commands.Cog):
     # =============================
     @discord.app_commands.command(name="commend", description="Commend a person")
     @discord.app_commands.guilds(config.GUILD_ID)
-    async def commend(self, interaction: discord.Interaction, person: discord.Member, role: str, reason: str):
+    async def commend(self, interaction: discord.Interaction, person: discord.Member, role: str, reason: str) -> None:
         try:
             # Log the command invocation. // Jack
             logging.info(f"Commend command invoked by {interaction.user.mention} for {person.mention} with role '{role}' and reason '{reason}'")
@@ -84,7 +84,7 @@ class CommendCandidateTracking(commands.Cog):
     #===================================
     @discord.app_commands.command(name="performance-bonus", description="Track how much you have earned in performance bonuses.")
     @discord.app_commands.guilds(config.GUILD_ID)
-    async def performancebonus(self, interaction: discord.Interaction):
+    async def performancebonus(self, interaction: discord.Interaction) -> None:
         with open("Data/performance_bonus.json") as f:
             performance_bonus = json.load(f)
 
@@ -98,7 +98,7 @@ class CommendCandidateTracking(commands.Cog):
     @discord.app_commands.command(name="track-a-candidate", description="Track a candidate's progress through operations.")
     @discord.app_commands.guilds(config.GUILD_ID)
     @discord.app_commands.checks.has_any_role(config.UNIT_STAFF_ROLE_ID, config.CURATOR_ROLE_ID, config.ZEUS_ROLE_ID, config.ZEUSINTRAINING_ROLE_ID)
-    async def track_a_candidate(self, interaction: discord.Interaction, member: discord.Member):
+    async def track_a_candidate(self, interaction: discord.Interaction, member: discord.Member) -> None:
 
         # Acknowledge the interaction early. // Jack
         await interaction.response.send_message(f"Tracking progress for {member.display_name}", ephemeral=True)
@@ -156,5 +156,5 @@ class CommendCandidateTracking(commands.Cog):
             )
             await channelCommendations.send(message_content)
 
-async def setup(bot):
+async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(CommendCandidateTracking(bot))

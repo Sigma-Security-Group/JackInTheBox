@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 user_persistent_modal_values: dict[int, dict] = {}
 
 class StaffTools(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: commands.Bot) -> None:
         super().__init__()
         self.bot = bot
 
@@ -21,7 +21,7 @@ class StaffTools(commands.Cog):
     @discord.app_commands.command(name="incident-report", description="Start an incident report")
     @discord.app_commands.guilds(config.GUILD_ID)
     @discord.app_commands.checks.has_role(config.UNIT_STAFF_ROLE_ID)
-    async def incident_report(self, interaction: discord.Interaction):
+    async def incident_report(self, interaction: discord.Interaction) -> None:
         # Check if the command is invoked in the correct staff channel
         if interaction.channel.id != config.UNIT_STAFF_CHANNEL_ID:  # Replace with your designated staff channel ID
             await interaction.response.send_message("You can only use this command in the designated staff channel.", ephemeral=True)
@@ -43,7 +43,7 @@ class StaffTools(commands.Cog):
     @discord.app_commands.command(name="delete-report", description="Delete a report by its ID")
     @discord.app_commands.guilds(config.GUILD_ID)
     @discord.app_commands.checks.has_role(config.UNIT_STAFF_ROLE_ID)  # Ensure only staff can use this command
-    async def delete_report(self, interaction: discord.Interaction, report_id: str):
+    async def delete_report(self, interaction: discord.Interaction, report_id: str) -> None:
         # Ensure the command is being used in the designated staff channel
         if interaction.channel.id != config.UNIT_STAFF_CHANNEL_ID:
             await interaction.response.send_message("This command can only be used in the staff channel.", ephemeral=True)
@@ -90,7 +90,7 @@ class StaffTools(commands.Cog):
     # Incident Report Error Logging
     @incident_report.error
     @delete_report.error
-    async def role_error(self, interaction: discord.Interaction, error: commands.CommandError):
+    async def role_error(self, interaction: discord.Interaction, error: commands.CommandError) -> None:
         if isinstance(error, discord.app_commands.errors.MissingRole):
             await interaction.response.send_message(f"You must have the `{config.UNIT_STAFF_ROLE_ID}` role to use this command.", ephemeral=True)
         else:
@@ -103,7 +103,7 @@ class StaffTools(commands.Cog):
 # Incident Report Modal. // Jack
 # ==============================
 class IncidentReportModal(discord.ui.Modal):
-    def __init__(self, interaction: discord.Interaction, bot: commands.Bot):
+    def __init__(self, interaction: discord.Interaction, bot: commands.Bot) -> None:
         super().__init__(title="Incident Report")
         self.interaction = interaction
         self.bot = bot
@@ -120,7 +120,7 @@ class IncidentReportModal(discord.ui.Modal):
         self.add_item(discord.ui.TextInput(label="Incident Outcome", style=discord.TextStyle.long, placeholder="Informal Verbal Warning, Formal Verbal Warning, Written Warning, Demotion, Kick, Ban, Blacklist", default=get_persistent_default("outcome"), required=True))
 
 
-    async def on_submit(self, interaction: discord.Interaction):
+    async def on_submit(self, interaction: discord.Interaction) -> None:
         try:
             # Open and load the incident reports file
             with open("Data/incident_reports.json") as f:
@@ -217,5 +217,5 @@ class IncidentReportModal(discord.ui.Modal):
             }
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(StaffTools(bot))
