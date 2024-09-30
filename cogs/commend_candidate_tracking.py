@@ -6,7 +6,7 @@ import time
 import config
 from discord.ext import commands
 from datetime import datetime, timedelta
-from config import GUILD_ID
+
 
 # Logging setup. // Jack
 logging.basicConfig(level=logging.INFO)
@@ -20,14 +20,14 @@ class CommendCandidateTracking(commands.Cog):
     # Commendation Command. // Jack
     # =============================
     @discord.app_commands.command(name="commend", description="Commend a person")
-    @discord.app_commands.guilds(GUILD_ID)
+    @discord.app_commands.guilds(config.GUILD_ID)
     async def commend(self, interaction: discord.Interaction, person: discord.Member, role: str, reason: str):
         try:
             # Log the command invocation. // Jack
             logging.info(f"Commend command invoked by {interaction.user.mention} for {person.mention} with role '{role}' and reason '{reason}'")
 
             # Fetch the guild and commendations channel. // Jack
-            guild = self.bot.get_guild(GUILD_ID)
+            guild = self.bot.get_guild(config.GUILD_ID)
             channelCommendations = await guild.fetch_channel(config.COMMENDATIONS_CHANNEL_ID)
 
             # Load performance bonuses and timestamps. // Jack
@@ -83,7 +83,7 @@ class CommendCandidateTracking(commands.Cog):
     # Performance Bonus Tracker. // Jack
     #===================================
     @discord.app_commands.command(name="performance-bonus", description="Track how much you have earned in performance bonuses.")
-    @discord.app_commands.guilds(GUILD_ID)
+    @discord.app_commands.guilds(config.GUILD_ID)
     async def performancebonus(self, interaction: discord.Interaction):
         with open("Data/performance_bonus.json") as f:
             performance_bonus = json.load(f)
@@ -96,7 +96,7 @@ class CommendCandidateTracking(commands.Cog):
     # Candidate Tracking Command. // Jack
     # ===================================
     @discord.app_commands.command(name="track-a-candidate", description="Track a candidate's progress through operations.")
-    @discord.app_commands.guilds(GUILD_ID)
+    @discord.app_commands.guilds(config.GUILD_ID)
     @discord.app_commands.checks.has_any_role(config.UNIT_STAFF_ROLE_ID, config.CURATOR_ROLE_ID, config.ZEUS_ROLE_ID, config.ZEUSINTRAINING_ROLE_ID)
     async def track_a_candidate(self, interaction: discord.Interaction, member: discord.Member):
 

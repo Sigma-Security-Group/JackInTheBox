@@ -1,14 +1,10 @@
 import json
-import random
 import logging
 import discord
-import time
 import config
 from dateutil.parser import parse
 from discord.ext import commands
 from datetime import datetime, timedelta, timezone
-from config import GUILD, GUILD_ID
-from config import UNIT_STAFF_ROLE_ID, UNIT_STAFF_CHANNEL_ID
 
 import __main__
 
@@ -138,11 +134,11 @@ class StaffTools(commands.Cog):
     # Incident report command. // Jack
     #=================================
     @discord.app_commands.command(name="incident-report", description="Start an incident report")
-    @discord.app_commands.guilds(GUILD_ID)
+    @discord.app_commands.guilds(config.GUILD_ID)
     @discord.app_commands.checks.has_role(config.UNIT_STAFF_ROLE_ID)
     async def incident_report(self, interaction: discord.Interaction):
         # Check if the command is invoked in the correct staff channel
-        if interaction.channel.id != UNIT_STAFF_CHANNEL_ID:  # Replace with your designated staff channel ID
+        if interaction.channel.id != config.UNIT_STAFF_CHANNEL_ID:  # Replace with your designated staff channel ID
             await interaction.response.send_message("You can only use this command in the designated staff channel.", ephemeral=True)
             return
         
@@ -160,11 +156,11 @@ class StaffTools(commands.Cog):
 
     # Delete a report command
     @discord.app_commands.command(name="delete-report", description="Delete a report by its ID")
-    @discord.app_commands.guilds(GUILD_ID)
+    @discord.app_commands.guilds(config.GUILD_ID)
     @discord.app_commands.checks.has_role(config.UNIT_STAFF_ROLE_ID)  # Ensure only staff can use this command
     async def delete_report(self, interaction: discord.Interaction, report_id: str):
         # Ensure the command is being used in the designated staff channel
-        if interaction.channel.id != UNIT_STAFF_CHANNEL_ID:
+        if interaction.channel.id != config.UNIT_STAFF_CHANNEL_ID:
             await interaction.response.send_message("This command can only be used in the staff channel.", ephemeral=True)
             return
 
@@ -176,7 +172,7 @@ class StaffTools(commands.Cog):
             for i, report in enumerate(incident_reports):
                 if report_number == report["report_id"]:
                     # Remove Discord message
-                    guild = __main__.bot.get_guild(GUILD_ID)
+                    guild = __main__.bot.get_guild(config.GUILD_ID)
                     if not guild:
                         logging.exception(f"Guild not found.")
                         return
