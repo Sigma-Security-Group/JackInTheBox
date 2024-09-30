@@ -6,12 +6,11 @@ from dateutil.parser import parse
 from discord.ext import commands
 from datetime import datetime, timedelta, timezone
 
-import __main__
 
 user_persistent_modal_values: dict[int, dict] = {}
 
 class StaffTools(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         super().__init__()
         self.bot = bot
 
@@ -19,9 +18,10 @@ class StaffTools(commands.Cog):
     # Incident Report Modal. // Jack
     # ==============================
     class IncidentReportModal(discord.ui.Modal):
-        def __init__(self, interaction: discord.Interaction):
+        def __init__(self, interaction: discord.Interaction, bot: commands.Bot):
             super().__init__(title="Incident Report")
             self.interaction = interaction
+            self.bot = bot
 
             get_persistent_default = lambda key: user_persistent_modal_values[interaction.user.id][key] if interaction.user.id in user_persistent_modal_values else None
             persistent_default_timestamp = get_persistent_default("timestamp")
@@ -87,7 +87,7 @@ class StaffTools(commands.Cog):
                 embed.add_field(name="Incident Outcome", value=outcome, inline=False)
 
                 # Send the report message to the log channel
-                report_log_channel = __main__.bot.get_channel(config.REPORT_LOG_CHANNEL_ID)
+                report_log_channel = self.bot.get_channel(config.REPORT_LOG_CHANNEL_ID)
                 report_message = await report_log_channel.send(embed=embed)
 
                 # Create a new incident report entry
@@ -107,7 +107,7 @@ class StaffTools(commands.Cog):
                 print(incident_reports)
 
                 # Notify staff in the unit staff channel
-                unit_staff_channel = __main__.bot.get_channel(config.UNIT_STAFF_CHANNEL_ID)
+                unit_staff_channel = self.bot.get_channel(config.UNIT_STAFF_CHANNEL_ID)
                 if unit_staff_channel:
                     await unit_staff_channel.send(f"New incident report filed by {handler.mention}: [View Report]({report_message.jump_url})")
 
@@ -143,7 +143,7 @@ class StaffTools(commands.Cog):
             return
         
         try:
-            modal = self.IncidentReportModal(interaction)
+            modal = self.IncidentReportModal(interaction, self.bot)
             await interaction.response.send_modal(modal)
         except Exception as e:
             logging.exception(f"Error in incident_report command: {e}")
@@ -172,7 +172,7 @@ class StaffTools(commands.Cog):
             for i, report in enumerate(incident_reports):
                 if report_number == report["report_id"]:
                     # Remove Discord message
-                    guild = __main__.bot.get_guild(config.GUILD_ID)
+                    guild = self.bot.get_guild(config.GUILD_ID)
                     if not guild:
                         logging.exception(f"Guild not found.")
                         return
