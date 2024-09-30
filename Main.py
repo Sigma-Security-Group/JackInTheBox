@@ -1,13 +1,7 @@
-import json
-import logging
 import discord
-import config
 import os
-from config import GUILD, GUILD_ID
+import config
 from discord.ext import commands
-from discord import app_commands
-from datetime import datetime, timezone, timedelta
-from dateutil.parser import parse
 from secret import TOKEN, TOKEN_TEST, USE_TEST_BOT
 
 INTENTS = discord.Intents.all()
@@ -19,7 +13,7 @@ class JackInTheBox(commands.Bot):
         super().__init__(
             command_prefix= "-",
             intents=intents,
-            activity=discord.Activity( 
+            activity=discord.Activity(
                 type=discord.ActivityType.watching,
                 name="Diddy from the MQ-9 Reaper Drone."
             ),
@@ -29,8 +23,8 @@ class JackInTheBox(commands.Bot):
     async def setup_hook(self) -> None:
         for cog in COGS:
             await bot.load_extension(f"cogs.{cog}")
-        self.tree.copy_global_to(guild=GUILD)  # This copies the global commands over to your guild.
-        await self.tree.sync(guild=GUILD)
+        self.tree.copy_global_to(guild=config.GUILD)  # This copies the global commands over to your guild.
+        await self.tree.sync(guild=config.GUILD)
 
 bot = JackInTheBox(intents=INTENTS)
 
