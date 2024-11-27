@@ -11,7 +11,7 @@ class JackInTheBox(commands.Bot):
     """Jack In The Box."""
     def __init__(self, *, intents: discord.Intents) -> None:
         super().__init__(
-            command_prefix= "-",
+            command_prefix=commands.when_mentioned,  # Use mention as command prefix rather than "-", which collides with Friendly Snek's prefix.
             intents=intents,
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
