@@ -155,11 +155,11 @@ class FeedbackCommands(commands.Cog):
     #===========================================
     # Jack In The Box Feedback Command. // Jack
     #===========================================
-    @app_commands.command(name="secure-ai-feedback", description="Submit feedback for Sigma's Secure A.I")
-    @app_commands.guilds(config.GUILD_ID)
-    async def secure_ai_feedback(self, interaction: discord.Interaction): 
-        modal = self.BotFeedBackModal(self.bot) 
-        await interaction.response.send_modal(modal)  
+    # @app_commands.command(name="secure-ai-feedback", description="Submit feedback for Sigma's Secure A.I")
+    # @app_commands.guilds(config.GUILD_ID)
+    # async def secure_ai_feedback(self, interaction: discord.Interaction): 
+    #     modal = self.BotFeedBackModal(self.bot) 
+    #     await interaction.response.send_modal(modal)  
 
     #===========================================
     # Zeus in Training Feedback Command. // Jack
