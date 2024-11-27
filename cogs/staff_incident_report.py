@@ -6,14 +6,15 @@ from dateutil.parser import parse
 from discord.ext import commands
 from datetime import datetime, timedelta, timezone
 
-
 user_persistent_modal_values: dict[int, dict] = {}
 
-class StaffTools(commands.Cog):
+#===================
+# Cog Setup. // Jack
+#===================
+class StaffIncidentReport(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
-        super().__init__()
         self.bot = bot
-
+        self.report_data = {}
 
     # ================================
     # Incident report command. // Jack
@@ -217,5 +218,8 @@ class IncidentReportModal(discord.ui.Modal):
             }
 
 
+#=================
+# Cog End. // Jack
+#=================
 async def setup(bot: commands.Bot) -> None:
-    await bot.add_cog(StaffTools(bot))
+    await bot.add_cog(StaffIncidentReport(bot))

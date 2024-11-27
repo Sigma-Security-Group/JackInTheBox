@@ -5,11 +5,12 @@ import discord
 import time
 import config
 from discord.ext import commands
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 # Logging setup. // Jack
 logging.basicConfig(level=logging.INFO)
+CURRENT_TIME = datetime.now(timezone.utc)
 
 class CommendCandidateTracking(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
@@ -34,7 +35,7 @@ class CommendCandidateTracking(commands.Cog):
             with open("Data/performance_bonus.json") as f:
                 performance_data = json.load(f)
 
-            user_id = str(interaction.user.id)
+            user_id = str(person.id)
             current_time = time.time()
 
             if user_id not in performance_data:
@@ -49,10 +50,11 @@ class CommendCandidateTracking(commands.Cog):
                 performance_data[user_id]["count"] = len(valid_timestamps)  # Update count to valid bonuses. // Jack
             else:
                 # Performance Bonus Generator
-                performance_bonus = round(random.randint(1000, 10000) + random.uniform(0, 1), 2)
+                performance_bonus = round(random.randint(1500, 10000) + random.uniform(0, 1), 2)
                 valid_timestamps.append(current_time)  # Add current timestamp for the bonus. // Jack
                 performance_data[user_id]["count"] = len(valid_timestamps)
-                performance_data[user_id]["totalBonus"] += performance_bonus
+                if performance_bonus > 0:
+                    performance_data[user_id]["totalBonus"] += performance_bonus
                 performance_data[user_id]["timestamps"] = valid_timestamps
 
             with open("Data/performance_bonus.json", "w") as f:
@@ -64,7 +66,7 @@ class CommendCandidateTracking(commands.Cog):
                 f"**By: **{interaction.user.mention}\n"
                 f"**Role: **{role}\n"
                 f"**Reason: **{reason}\n"
-                f"The Preformance Bonus of ${performance_bonus:,.2f} has been wired to your account."
+                f"The Performance Bonus of £{performance_bonus:,.2f} has been wired to your account."
             )
 
             # Respond to the user with an ephemeral message. // Jack
@@ -79,18 +81,18 @@ class CommendCandidateTracking(commands.Cog):
             await interaction.response.send_message("An unexpected error occurred while processing your commendation.",
                 ephemeral=True)
 
-    #===================================
+    # ===================================
     # Performance Bonus Tracker. // Jack
-    #===================================
+    # ===================================
     @discord.app_commands.command(name="performance-bonus", description="Track how much you have earned in performance bonuses.")
     @discord.app_commands.guilds(config.GUILD_ID)
     async def performancebonus(self, interaction: discord.Interaction) -> None:
         with open("Data/performance_bonus.json") as f:
             performance_bonus = json.load(f)
 
-        userId = str(interaction.user.id)
-        totalBonus = performance_bonus.get(userId, {"totalBonus": 0})["totalBonus"]
-        await interaction.response.send_message(f"You have earned a total of **${totalBonus:,.2f}** in performance bonuses.", ephemeral=False)
+        user_id = str(interaction.user.id)
+        total_bonus = performance_bonus.get(user_id, {"totalBonus": 0})["totalBonus"]
+        await interaction.response.send_message(f"You have earned a total of **£{total_bonus:,.2f}** in performance bonuses.", ephemeral=False)
 
     # ===================================
     # Candidate Tracking Command. // Jack
@@ -99,7 +101,6 @@ class CommendCandidateTracking(commands.Cog):
     @discord.app_commands.guilds(config.GUILD_ID)
     @discord.app_commands.checks.has_any_role(config.UNIT_STAFF_ROLE_ID, config.CURATOR_ROLE_ID, config.ZEUS_ROLE_ID, config.ZEUSINTRAINING_ROLE_ID)
     async def track_a_candidate(self, interaction: discord.Interaction, member: discord.Member) -> None:
-
         # Acknowledge the interaction early. // Jack
         await interaction.response.send_message(f"Tracking progress for {member.display_name}", ephemeral=True)
 
@@ -109,52 +110,82 @@ class CommendCandidateTracking(commands.Cog):
             await interaction.followup.send("Commendations channel not found.", ephemeral=True)
             return
 
-        # Initialize operation count for the selected member. // Jack
+        # Initialise operation count and most recent message time for the selected member. // Jack
         operation_count = 1
-
-        # Recent Messages Timer to ensure the Candidate does not get mutiple tracks for one operation. // Jack & Adrian
         most_recent_message_time = None
 
-        # Fetch unit staff role // Jack
-        guild = interaction.guild
-        unit_staff_role = guild.get_role(config.UNIT_STAFF_ROLE_ID)
-
-        # Check if member has reached 3/3 operations to be promoted. // Jack
-        async for message in channel_commendations.history(limit=1000):
-            # Ensure the message contains the keyword and mentions the member. // Jack
+        # Check for the command target's participation in operations. // Jack
+        async for message in channel_commendations.history(limit=500):
             if config.OPERATION_KEYWORD.lower() in message.content.lower() and member in message.mentions:
                 operation_count += 1
-                if most_recent_message_time is None or most_recent_message_time < message.created_at:
-                    most_recent_message_time = message.created_at.replace(tzinfo=None)
+                if most_recent_message_time is None or message.created_at > most_recent_message_time:
+                    most_recent_message_time = message.created_at
 
-        print(most_recent_message_time)
-        if most_recent_message_time is not None and datetime.utcnow() - most_recent_message_time < timedelta(hours=1):
-            await interaction.followup.send("Error code CCT-0004 has occurred. Member has already been tracked for this operation. Please try again. If the error persists, please notify Jack MacTavish.", ephemeral=True)
+        # Get the current time in UTC and make it timezone-aware. // Jack
+        current_time = datetime.now(timezone.utc)
+
+        # Ensure the Candidate does not get tracked multiple times for one operation. // Jack & Adrian
+        if most_recent_message_time and current_time - most_recent_message_time < timedelta(seconds=1):
+            await interaction.followup.send("Error code CCT-0004: Member has already been tracked for this operation. Please try again later. If the error persists, notify Jack MacTavish.", ephemeral=True)
             logging.debug("Skip tracking due to recent message.")
             return
 
-        # Check for the total number of operation attendance of the command target. // Jack
+        # Check if the member has completed enough operations. // Jack
         if operation_count >= config.TOTAL_OPERATIONS:
-            # The command target has reached 3/3 operations. Send eligibility message. // Jack
+            # The command target has reached the required operations. // Jack
+            guild = interaction.guild
+            unit_staff_role = guild.get_role(config.UNIT_STAFF_ROLE_ID)
+
             message_content = (
-                f"{member.mention}, after demonstrating valor, resilience, and unwavering dedication across 3 successful deployments, "
+                f"{member.mention}, after demonstrating valour, resilience, and unwavering dedication across 3 successful deployments, "
                 f"you’ve proven yourself to be a true asset to this unit. Your commitment to excellence and operational prowess has not gone unnoticed.\n\n"
-                f"With your final deployment logged, you are now ready to take the next step and join the ranks of Sigma. This is no ordinary transition. Sigma is a brotherhood "
-                f"of the elite, those who have earned their place through blood, sweat, and loyalty.\n\n"
                 f"Welcome to Sigma. Your journey has only just begun. The battlefield awaits, and now, you stand among the best.\n\n"
-                f"{unit_staff_role.mention}, please fill in the necessary paperwork and notify HR."
+                f"{unit_staff_role.mention}, please fulfil the necessary paperwork and notify HR."
             )
             await channel_commendations.send(message_content)
         else:
-            # Calculate remaining operations. // Jack
+            # Calculate remaining operations and send a status update. // Jack
             remaining_ops = config.TOTAL_OPERATIONS - operation_count
-
-            # Send status update message. // Jack
-            message_content = (
+            await channel_commendations.send(
                 f"{member.mention} has attended an operation and is on their way to becoming a Sigma Associate. "
                 f"They have {remaining_ops} operations left."
             )
-            await channel_commendations.send(message_content)
+
+    # ==============================================
+    # Performance Bonus Leaderboard Command. // Jack
+    # ==============================================
+    @discord.app_commands.command(name="performance-bonus-list", description="List all members with performance bonuses.")
+    @discord.app_commands.guilds(config.GUILD_ID)
+    async def list_bonuses(self, interaction: discord.Interaction):
+        try:
+            with open("Data/performance_bonus.json") as f:
+                performance_data = json.load(f)
+
+            bonus_list = []
+
+            for user_id, data in performance_data.items():
+                if data["totalBonus"] > 0:  
+                    member = await self.bot.fetch_user(int(user_id))  
+                    bonus_list.append(f"{member.display_name}: £{data['totalBonus']:,.2f}")
+
+            embed = discord.Embed(
+                title="All Operators who have earned performance bonuses.",
+                description="Below is a list of operators who have received performance bonuses:",
+                colour=discord.Colour.green()
+            )
+
+            if bonus_list:
+                for bonus in bonus_list:
+                    user_name, bonus_amount = bonus.split(": ")
+                    embed.add_field(name=user_name, value=bonus_amount, inline=False)
+            else:
+                embed.description = "No members have earned any performance bonuses yet."
+
+            await interaction.response.send_message(embed=embed)
+
+        except Exception as e:
+            logging.error(f"Error while listing performance bonuses: {e}")
+            await interaction.response.send_message("An error occurred while retrieving the list of bonuses.", ephemeral=True)
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(CommendCandidateTracking(bot))

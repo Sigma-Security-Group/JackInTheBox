@@ -15,7 +15,7 @@ class JackInTheBox(commands.Bot):
             intents=intents,
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
-                name="Diddy from the MQ-9 Reaper Drone."
+                name="Over Diddy with an MQ-9 Reaper Drone."
             ),
             status="online"
         )
@@ -23,7 +23,7 @@ class JackInTheBox(commands.Bot):
     async def setup_hook(self) -> None:
         for cog in COGS:
             await bot.load_extension(f"cogs.{cog}")
-        self.tree.copy_global_to(guild=config.GUILD)  # This copies the global commands over to your guild.
+        self.tree.copy_global_to(guild=config.GUILD)
         await self.tree.sync(guild=config.GUILD)
 
 bot = JackInTheBox(intents=INTENTS)
