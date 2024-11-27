@@ -4,7 +4,7 @@
 import discord
 import config
 import secret
-from secret import JACK_ID
+#from secret import JACK_ID
 from discord.ext import commands
 from discord import app_commands
 from discord.ui import Modal, TextInput, Select, View
