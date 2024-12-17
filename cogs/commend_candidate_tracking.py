@@ -155,37 +155,59 @@ class CommendCandidateTracking(commands.Cog):
     # Performance Bonus Leaderboard Command. // Jack
     # ==============================================
     @discord.app_commands.command(name="performance-bonus-list", description="List all members with performance bonuses.")
-    @discord.app_commands.guilds(config.GUILD_ID)
+    @discord.app_commands.guilds(config.GUILD_ID)  # Ensure the command is only available in your guild
     async def list_bonuses(self, interaction: discord.Interaction):
         try:
+            # Defer the interaction to prevent timeouts
+            await interaction.response.defer(thinking=True)
+
+            # Load performance bonus data
             with open("Data/performance_bonus.json") as f:
                 performance_data = json.load(f)
 
             bonus_list = []
-
             for user_id, data in performance_data.items():
-                if data["totalBonus"] > 0:  
-                    member = await self.bot.fetch_user(int(user_id))  
+                if data["totalBonus"] > 0:
+                    member = await self.bot.fetch_user(int(user_id))  # Fetch user data
                     bonus_list.append(f"{member.display_name}: £{data['totalBonus']:,.2f}")
 
+            # Check if the bonus list is empty
+            if not bonus_list:
+                embed = discord.Embed(
+                    title="Performance Bonuses",
+                    description="No members have earned any performance bonuses yet.",
+                    colour=discord.Colour.green()
+                )
+                await interaction.followup.send(embed=embed)
+                return
+
+            # Build embeds with a field limit
+            MAX_FIELDS = 25
             embed = discord.Embed(
-                title="All Operators who have earned performance bonuses.",
-                description="Below is a list of operators who have received performance bonuses:",
+                title="All Operators with Performance Bonuses",
+                description="Here is a list of operators who have received performance bonuses:",
                 colour=discord.Colour.green()
             )
 
-            if bonus_list:
-                for bonus in bonus_list:
-                    user_name, bonus_amount = bonus.split(": ")
-                    embed.add_field(name=user_name, value=bonus_amount, inline=False)
-            else:
-                embed.description = "No members have earned any performance bonuses yet."
+            for i, bonus in enumerate(bonus_list):
+                user_name, bonus_amount = bonus.split(": ")
+                embed.add_field(name=user_name, value=bonus_amount, inline=False)
 
-            await interaction.response.send_message(embed=embed)
+                # If 25 fields are reached, send the current embed
+                if (i + 1) % MAX_FIELDS == 0:
+                    await interaction.followup.send(embed=embed)
+                    embed = discord.Embed(
+                        title="Performance Bonuses (Continued)",
+                        colour=discord.Colour.green()
+                    )
+
+            # Send the final embed
+            if len(embed.fields) > 0:
+                await interaction.followup.send(embed=embed)
 
         except Exception as e:
             logging.error(f"Error while listing performance bonuses: {e}")
-            await interaction.response.send_message("An error occurred while retrieving the list of bonuses.", ephemeral=True)
+            await interaction.followup.send("An error occurred while retrieving the list of bonuses.", ephemeral=True)
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(CommendCandidateTracking(bot))
