@@ -154,7 +154,7 @@ class CommendCandidateTracking(commands.Cog):
     # ==============================================
     # Performance Bonus Leaderboard Command. // Jack
     # ==============================================
-    @discord.app_commands.command(name="performance-bonus-list", description="List all members with performance bonuses.")
+    @discord.app_commands.command(name="performance-bonus-leaderboard", description="Sigma's top performers.")
     @discord.app_commands.guilds(config.GUILD_ID)  # Ensure the command is only available in your guild
     async def list_bonuses(self, interaction: discord.Interaction):
         try:
@@ -169,7 +169,10 @@ class CommendCandidateTracking(commands.Cog):
             for user_id, data in performance_data.items():
                 if data["totalBonus"] > 0:
                     member = await self.bot.fetch_user(int(user_id))  # Fetch user data
-                    bonus_list.append(f"{member.display_name}: £{data['totalBonus']:,.2f}")
+                    bonus_list.append((member.display_name, data["totalBonus"]))
+
+            # Sort the list by totalBonus in descending order
+            bonus_list.sort(key=lambda x: x[1], reverse=True)
 
             # Check if the bonus list is empty
             if not bonus_list:
@@ -184,20 +187,19 @@ class CommendCandidateTracking(commands.Cog):
             # Build embeds with a field limit
             MAX_FIELDS = 25
             embed = discord.Embed(
-                title="All Operators with Performance Bonuses",
-                description="Here is a list of operators who have received performance bonuses:",
+                title="Performance Bonuses Leaderboard",
+                description="Here is the leaderboard of operators with the highest performance bonuses:",
                 colour=discord.Colour.green()
             )
 
-            for i, bonus in enumerate(bonus_list):
-                user_name, bonus_amount = bonus.split(": ")
-                embed.add_field(name=user_name, value=bonus_amount, inline=False)
+            for i, (user_name, total_bonus) in enumerate(bonus_list):
+                embed.add_field(name=f"{i + 1}. {user_name}", value=f"£{total_bonus:,.2f}", inline=False)
 
-                # If 25 fields are reached, send the current embed
+                # If 25 fields are reached, send the current embed and start a new one
                 if (i + 1) % MAX_FIELDS == 0:
                     await interaction.followup.send(embed=embed)
                     embed = discord.Embed(
-                        title="Performance Bonuses (Continued)",
+                        title="Performance Bonuses Leaderboard (Continued)",
                         colour=discord.Colour.green()
                     )
 
