@@ -62,14 +62,29 @@ class CommendCandidateTracking(commands.Cog):
             with open("Data/performance_bonus.json", "w") as f:
                 json.dump(performance_data, f, indent=4)
 
-            # Send a tagging message to inform who commended whom. // Jack
+            # Send a text message to the commendations channel. // Jack
             await channel_commendations.send(
-                f"**Commended: **{person.mention}\n"
-                f"**By: **{interaction.user.mention}\n"
-                f"**Role: **{role}\n"
-                f"**Reason: **{reason}\n"
-                f"The Performance Bonus of £{performance_bonus:,.2f} has been wired to your account."
+                f"{person.mention} has been commended by {interaction.user.mention}!"
             )
+
+            # Create an embed for the commendation. // Jack
+            embed = discord.Embed(
+                title="Commendation Received!",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="Commended", value=person.mention, inline=False)
+            embed.add_field(name="By", value=interaction.user.mention, inline=False)
+            embed.add_field(name="Role", value=role, inline=False)
+            embed.add_field(name="Reason", value=reason, inline=False)
+            embed.add_field(
+                name="Performance Bonus",
+                value=f"£{performance_bonus:,.2f}" if performance_bonus > 0 else "No bonus awarded.",
+                inline=False
+            )
+            embed.set_footer(text="Great work deserves recognition!")
+
+            # Send the embed to the commendations channel. // Jack
+            await channel_commendations.send(embed=embed)
 
             # Respond to the user with an ephemeral message. // Jack
             await interaction.response.send_message(
@@ -80,8 +95,10 @@ class CommendCandidateTracking(commands.Cog):
 
         except Exception as e:
             logging.exception(f"Error in commend command: {e}")
-            await interaction.response.send_message("An unexpected error occurred while processing your commendation.",
-                ephemeral=True)
+            await interaction.response.send_message(
+                "An unexpected error occurred while processing your commendation.",
+                ephemeral=True
+            )
 
     # ===================================
     # Performance Bonus Tracker. // Jack
@@ -399,9 +416,6 @@ class CommendCandidateTracking(commands.Cog):
                 "An error occurred while processing your recommendation. Please try again later.",
                 ephemeral=True
             )
-
-
-
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(CommendCandidateTracking(bot))
