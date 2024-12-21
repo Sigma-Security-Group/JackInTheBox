@@ -4,7 +4,9 @@ import logging
 import discord
 import time
 import config
+import asyncio
 from discord.ext import commands
+from discord import app_commands
 from datetime import datetime, timedelta, timezone
 
 
@@ -210,6 +212,196 @@ class CommendCandidateTracking(commands.Cog):
         except Exception as e:
             logging.error(f"Error while listing performance bonuses: {e}")
             await interaction.followup.send("An error occurred while retrieving the list of bonuses.", ephemeral=True)
+
+    #===========================
+    # Promotion Command. // Jack
+    #===========================
+    @app_commands.command(name="recommend-for-promotion", description="Recommend a user for promotion.")
+    @app_commands.guilds(config.GUILD_ID)
+    @app_commands.checks.has_any_role(config.ZEUS_ROLE_ID, config.ZEUSINTRAINING_ROLE_ID, config.UNIT_STAFF_ROLE_ID)
+    async def recommend_for_promotion(
+        self,
+        interaction: discord.Interaction,
+        target_user: discord.Member,
+        first_voucher: discord.Member,
+        second_voucher: discord.Member
+    ):
+        try:
+            await interaction.response.defer(ephemeral=True)  # Defer response
+
+            # Role hierarchy list and promotion logic
+            rank_roles = {
+                config.CANDIDATE_ROLE_ID: "Candidate",
+                config.ASSOCIATE_ROLE_ID: "Associate",
+                config.CONTRACTOR_ROLE_ID: "Contractor",
+                config.MERCENARY_ROLE_ID: "Mercenary",
+                config.TACTICIAN_ROLE_ID: "Tactician",
+                config.OPERATOR_ROLE_ID: "Operator",
+                config.STRATEGIST_ROLE_ID: "Strategist"
+            }
+
+            # Check the user's current rank
+            current_role = None
+            for role in target_user.roles:
+                if role.id in rank_roles:
+                    current_role = role
+                    break
+
+            if not current_role:
+                await interaction.followup.send(
+                    f"{target_user.mention} does not have a recognized rank role.",
+                    ephemeral=True
+                )
+                return
+
+            current_rank_name = rank_roles[current_role.id]
+
+            # Determine the next rank
+            if current_rank_name == "Candidate":
+                next_rank = "Associate"
+            elif current_rank_name == "Associate":
+                next_rank = "Contractor"
+            elif current_rank_name == "Contractor":
+                # Ask the user to select a tree (Combat or Strategist)
+                dropdown_options = [
+                    discord.SelectOption(label="Combat", description="Become a Mercenary."),
+                    discord.SelectOption(label="Strategist", description="Become a Tactician.")
+                ]
+
+                class TreeDropdown(discord.ui.Select):
+                    def __init__(self, user: discord.Member):
+                        super().__init__(
+                            placeholder="Choose your preferred tree...",
+                            options=dropdown_options
+                        )
+                        self.user = user
+                        self.selected_tree = None
+
+                    async def callback(self, dropdown_interaction: discord.Interaction):
+                        if dropdown_interaction.user != self.user:
+                            await dropdown_interaction.response.send_message(
+                                "You are not allowed to select this option.",
+                                ephemeral=True
+                            )
+                            return
+                        self.selected_tree = self.values[0]
+                        await dropdown_interaction.response.send_message(
+                            f"You chose **{self.selected_tree}** tree.",
+                            ephemeral=True
+                        )
+
+                tree_dropdown = TreeDropdown(target_user)
+                dropdown_view = discord.ui.View()
+                dropdown_view.add_item(tree_dropdown)
+
+                try:
+                    await target_user.send(
+                        "You’ve been recommended for promotion! Please choose your career path:",
+                        view=dropdown_view
+                    )
+                except discord.Forbidden:
+                    await interaction.followup.send(
+                        f"Could not DM {target_user.mention}. Ensure their DMs are open.",
+                        ephemeral=True
+                    )
+                    return
+
+                # Wait for the user to respond (timeout after 90 seconds)
+                timeout = 90
+                start_time = asyncio.get_event_loop().time()
+                while not tree_dropdown.selected_tree:
+                    if asyncio.get_event_loop().time() - start_time > timeout:
+                        try:
+                            await target_user.send("You did not choose a tree in time. Please contact your unit staff.")
+                        except discord.Forbidden:
+                            pass
+                        await interaction.followup.send(
+                            f"{target_user.mention} did not respond in time. Please follow up with them.",
+                            ephemeral=True
+                        )
+                        return
+                    await asyncio.sleep(1)
+
+                if tree_dropdown.selected_tree == "Combat":
+                    next_rank = "Mercenary"
+                else:
+                    next_rank = "Tactician"
+            elif current_rank_name == "Mercenary":
+                next_rank = "Operator"
+            elif current_rank_name == "Tactician":
+                next_rank = "Strategist"
+            elif current_rank_name == "Operator":
+                next_rank = None  # Operator is the final rank in Combat, no promotion
+            elif current_rank_name == "Strategist":
+                next_rank = None  # Strategist is the final rank, no promotion
+
+            if next_rank is None:
+                await interaction.followup.send(
+                    f"{target_user.mention} is already at the highest rank and cannot be promoted further.",
+                    ephemeral=True
+                )
+                return
+
+            # Send the recommendation details to the commendations channel
+            commendations_channel = interaction.guild.get_channel(config.COMMENDATIONS_CHANNEL_ID)
+            if not commendations_channel:
+                await interaction.followup.send(
+                    "The commendations channel could not be found. Please contact an admin.",
+                    ephemeral=True
+                )
+                return
+
+            # Tagging the Unit Staff role in the message
+            unit_staff_role = interaction.guild.get_role(config.UNIT_STAFF_ROLE_ID)
+            if unit_staff_role:
+                unit_staff_mention = unit_staff_role.mention
+            else:
+                unit_staff_mention = "Unit Staff"  # Fallback in case the role is not found
+
+            # Tagging the current and recommended roles
+            current_role_mention = current_role.mention if current_role else "Unknown Role"
+            next_role_mention = None
+
+            # Get the role IDs and mention for the next rank
+            if next_rank == "Associate":
+                next_role_mention = discord.utils.get(interaction.guild.roles, id=config.ASSOCIATE_ROLE_ID).mention
+            elif next_rank == "Contractor":
+                next_role_mention = discord.utils.get(interaction.guild.roles, id=config.CONTRACTOR_ROLE_ID).mention
+            elif next_rank == "Mercenary":
+                next_role_mention = discord.utils.get(interaction.guild.roles, id=config.MERCENARY_ROLE_ID).mention
+            elif next_rank == "Tactician":
+                next_role_mention = discord.utils.get(interaction.guild.roles, id=config.TACTICIAN_ROLE_ID).mention
+            elif next_rank == "Operator":
+                next_role_mention = discord.utils.get(interaction.guild.roles, id=config.OPERATOR_ROLE_ID).mention
+            elif next_rank == "Strategist":
+                next_role_mention = discord.utils.get(interaction.guild.roles, id=config.STRATEGIST_ROLE_ID).mention
+
+            message_content = (
+                f"**Recommendation for Promotion**\n\n"
+                f"**Target User:** {target_user.mention}\n"
+                f"**Current Rank:** {current_role_mention}\n"
+                f"**Recommended for Promotion to:** {next_role_mention}\n\n"
+                f"**1st Voucher:** {first_voucher.mention}\n"
+                f"**2nd Voucher:** {second_voucher.mention}\n\n"
+                f"{unit_staff_mention}, please proceed with the necessary steps."
+            )
+            await commendations_channel.send(message_content)
+
+            # Confirm success to the interaction user
+            await interaction.followup.send(
+                f"Your recommendation for {target_user.mention} has been submitted successfully.",
+                ephemeral=True
+            )
+
+        except Exception as e:
+            logging.exception(f"Error in recommend_for_promotion command: {e}")
+            await interaction.followup.send(
+                "An error occurred while processing your recommendation. Please try again later.",
+                ephemeral=True
+            )
+
+
+
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(CommendCandidateTracking(bot))

@@ -50,13 +50,13 @@ class FeedbackCommands(commands.Cog):
                 required=True
             )
             self.positive_points = TextInput(
-                label="Please reference the #zeus-guidelines.",
+                label="Things Done Well",
                 style=discord.TextStyle.paragraph,
-                placeholder="What did the Zeus in Training do well?",
+                placeholder="What did the Zeus in Training do well? Please reference the #zeus-guidelines.",
                 required=True
             )
             self.improvement_points = TextInput(
-                label="Points for Improvement.",
+                label="Points for Improvement",
                 style=discord.TextStyle.paragraph,
                 placeholder="What could be improved? Please reference the #zeus-guidelines.",
                 required=True
