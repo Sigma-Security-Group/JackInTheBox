@@ -160,7 +160,7 @@ class CommendCandidateTracking(commands.Cog):
                 f"{member.mention}, after demonstrating valour, resilience, and unwavering dedication across {operation_count} successful deployments, "
                 f"you’ve proven yourself to be a true asset to this unit. Your commitment to excellence and operational prowess has not gone unnoticed.\n\n"
                 f"Welcome to Sigma. Your journey has only just begun. The battlefield awaits, and now, you stand among the best.\n\n"
-                f"{unit_staff_role.mention}, please fulfil the necessary paperwork and notify HR."
+                f"{member.mention}, it is now time for your assessment with {unit_staff_role.mention}."
             )
             await channel_commendations.send(text_message)
 
