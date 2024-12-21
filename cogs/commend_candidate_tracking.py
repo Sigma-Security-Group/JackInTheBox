@@ -123,13 +123,13 @@ class CommendCandidateTracking(commands.Cog):
         # Acknowledge the interaction early. // Jack
         await interaction.response.send_message(f"Tracking progress for {member.display_name}", ephemeral=True)
 
-        # Fetch the Commendations channel // Jack
+        # Fetch the Commendations channel. // Jack
         channel_commendations = self.bot.get_channel(config.COMMENDATIONS_CHANNEL_ID)
         if not channel_commendations:
             await interaction.followup.send("Commendations channel not found.", ephemeral=True)
             return
 
-        # Initialise operation count and most recent message time for the selected member. // Jack
+        # Initialize operation count and most recent message time for the selected member. // Jack
         operation_count = 1
         most_recent_message_time = None
 
@@ -155,20 +155,51 @@ class CommendCandidateTracking(commands.Cog):
             guild = interaction.guild
             unit_staff_role = guild.get_role(config.UNIT_STAFF_ROLE_ID)
 
-            message_content = (
-                f"{member.mention}, after demonstrating valour, resilience, and unwavering dedication across 3 successful deployments, "
+            # Text message content
+            text_message = (
+                f"{member.mention}, after demonstrating valour, resilience, and unwavering dedication across {operation_count} successful deployments, "
                 f"you’ve proven yourself to be a true asset to this unit. Your commitment to excellence and operational prowess has not gone unnoticed.\n\n"
                 f"Welcome to Sigma. Your journey has only just begun. The battlefield awaits, and now, you stand among the best.\n\n"
                 f"{unit_staff_role.mention}, please fulfil the necessary paperwork and notify HR."
             )
-            await channel_commendations.send(message_content)
+            await channel_commendations.send(text_message)
+
+            # Create an embed for detailed tracking. // Jack
+            embed = discord.Embed(
+                title="Candidate Progress Update",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="Candidate", value=member.mention, inline=False)
+            embed.add_field(name="Progress", value=f"{operation_count}/{config.TOTAL_OPERATIONS} operations completed.", inline=False)
+            embed.add_field(name="Status", value="**Promoted to Sigma Associate**", inline=False)
+            embed.set_footer(text="Congratulations on your outstanding achievement!")
+
+            # Send the embed to the commendations channel. // Jack
+            await channel_commendations.send(embed=embed)
+
         else:
             # Calculate remaining operations and send a status update. // Jack
             remaining_ops = config.TOTAL_OPERATIONS - operation_count
-            await channel_commendations.send(
+
+            # Text message content
+            text_message = (
                 f"{member.mention} has attended an operation and is on their way to becoming a Sigma Associate. "
                 f"They have {remaining_ops} operations left."
             )
+            await channel_commendations.send(text_message)
+
+            # Create an embed for detailed tracking. // Jack
+            embed = discord.Embed(
+                title="Candidate Progress Update",
+                color=discord.Color.blue()
+            )
+            embed.add_field(name="Candidate", value=member.mention, inline=False)
+            embed.add_field(name="Progress", value=f"{operation_count}/{config.TOTAL_OPERATIONS} operations completed.", inline=False)
+            embed.add_field(name="Remaining Operations", value=f"{remaining_ops} left.", inline=False)
+            embed.set_footer(text="Keep up the great work!")
+
+            # Send the embed to the commendations channel. // Jack
+            await channel_commendations.send(embed=embed)
 
     # ==============================================
     # Performance Bonus Leaderboard Command. // Jack
