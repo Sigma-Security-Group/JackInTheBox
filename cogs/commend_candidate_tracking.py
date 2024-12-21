@@ -305,6 +305,7 @@ class CommendCandidateTracking(commands.Cog):
             current_rank_name = rank_roles[current_role.id]
 
             # Determine the next rank
+            next_rank = None
             if current_rank_name == "Candidate":
                 next_rank = "Associate"
             elif current_rank_name == "Associate":
@@ -313,7 +314,7 @@ class CommendCandidateTracking(commands.Cog):
                 # Ask the user to select a tree (Combat or Strategist)
                 dropdown_options = [
                     discord.SelectOption(label="Combat", description="Become a Mercenary."),
-                    discord.SelectOption(label="Strategist", description="Become a Tactician.")
+                    discord.SelectOption(label="Tactical", description="Become a Tactician.")
                 ]
 
                 class TreeDropdown(discord.ui.Select):
@@ -354,8 +355,8 @@ class CommendCandidateTracking(commands.Cog):
                     )
                     return
 
-                # Wait for the user to respond (timeout after 90 seconds)
-                timeout = 90
+                # Wait for the user to respond (timeout after 60 seconds)
+                timeout = 60
                 start_time = asyncio.get_event_loop().time()
                 while not tree_dropdown.selected_tree:
                     if asyncio.get_event_loop().time() - start_time > timeout:
@@ -424,16 +425,25 @@ class CommendCandidateTracking(commands.Cog):
             elif next_rank == "Strategist":
                 next_role_mention = discord.utils.get(interaction.guild.roles, id=config.STRATEGIST_ROLE_ID).mention
 
-            message_content = (
-                f"**Recommendation for Promotion**\n\n"
-                f"**Target User:** {target_user.mention}\n"
-                f"**Current Rank:** {current_role_mention}\n"
-                f"**Recommended for Promotion to:** {next_role_mention}\n\n"
-                f"**1st Voucher:** {first_voucher.mention}\n"
-                f"**2nd Voucher:** {second_voucher.mention}\n\n"
-                f"{unit_staff_mention}, please proceed with the necessary steps."
+            # Create an embed message for the recommendation
+            embed = discord.Embed(
+                title="Promotion Recommendation",
+                color=discord.Color.gold(),
+                timestamp=datetime.now()
             )
-            await commendations_channel.send(message_content)
+            embed.add_field(name="Candidate", value=target_user.mention, inline=False)
+            embed.add_field(name="Current Rank", value=current_role_mention, inline=False)
+            embed.add_field(name="Recommended Rank", value=next_role_mention, inline=False)
+            embed.add_field(name="Vouchers", value=f"- {first_voucher.mention}\n- {second_voucher.mention}", inline=False)
+            embed.set_footer(text="Recommendation submitted for review.")
+
+            # Send the embed to the commendations channel
+            text_message = (
+            f"{first_voucher.mention} & {second_voucher.mention} has recommended {target_user.mention} for promotion.\n"
+            f"Please review the details below: {unit_staff_mention}"
+        )
+            await commendations_channel.send(text_message)
+            await commendations_channel.send(embed=embed)
 
             # Confirm success to the interaction user
             await interaction.followup.send(
