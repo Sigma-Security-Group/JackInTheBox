@@ -26,6 +26,12 @@ class CommendCandidateTracking(commands.Cog):
     @discord.app_commands.guilds(config.GUILD_ID)
     async def commend(self, interaction: discord.Interaction, person: discord.Member, role: str, reason: str) -> None:
         try:
+
+            if person.id == interaction.user.id:
+                await interaction.response.send_message(
+                    "You cheeky bugger! You cannot commend yourself.", ephemeral=True
+                )
+                return
             # Log the command invocation. // Jack
             logging.info(f"Commend command invoked by {interaction.user.mention} for {person.mention} with role '{role}' and reason '{reason}'")
 
