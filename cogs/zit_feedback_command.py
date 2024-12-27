@@ -5,7 +5,6 @@ import discord
 import config
 import secret
 import logging
-#from secret import JACK_ID
 from discord.ext import commands
 from discord import app_commands
 from discord.ui import Modal, TextInput, Select, View
@@ -118,7 +117,10 @@ class FeedbackCommands(commands.Cog):
 
             # Send the feedback embed to the channel
             await feedback_channel.send(
-                f"<@&{config.CURATOR_ROLE_ID}>, this feedback is awaiting your review.",
+                content=(
+                    f"<@&{config.CURATOR_ROLE_ID}>, this feedback is awaiting your review.\n"
+                    f"{interaction.user.mention} has provided feedback for {self.person.mention}"
+                ),
                 embed=self.embed
             )
 
