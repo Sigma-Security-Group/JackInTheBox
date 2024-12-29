@@ -222,10 +222,15 @@ class CommendCandidateTracking(commands.Cog):
                 performance_data = json.load(f)
 
             bonus_list = []
+            guild = interaction.guild  # The guild where the command was invoked
+
             for user_id, data in performance_data.items():
                 if data["totalBonus"] > 0:
-                    member = await self.bot.fetch_user(int(user_id))  # Fetch user data
-                    bonus_list.append((member.display_name, data["totalBonus"]))
+                    member = guild.get_member(int(user_id))  # Fetch the member from the guild
+
+                    # If member exists, append their display name and bonus
+                    if member:
+                        bonus_list.append((member.display_name, data["totalBonus"]))
 
             # Sort the list by totalBonus in descending order
             bonus_list.sort(key=lambda x: x[1], reverse=True)
