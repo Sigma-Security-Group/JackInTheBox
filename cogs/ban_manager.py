@@ -66,7 +66,7 @@ class BanManager(commands.Cog):
                     color=discord.Color.orange()
                 )
                 log_embed.add_field(name="Member", value=f"{member} ({member.id})", inline=False)
-                log_embed.add_field(name="Moderator", value=f"{interaction.user} ({interaction.user.id})", inline=False)
+                log_embed.add_field(name="Moderator", value=f"{interaction.user.display_name} ({interaction.user.id})", inline=False)
                 log_embed.add_field(name="Reason", value=reason, inline=False)
                 log_embed.add_field(name="Duration", value=f"{duration} days", inline=False)
                 log_embed.add_field(name="Appealable", value=appeal_status, inline=False)
