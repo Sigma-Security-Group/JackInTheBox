@@ -22,9 +22,9 @@ class NoShowTracking(commands.Cog):
     @discord.app_commands.checks.has_any_role(
         config.UNIT_STAFF_ROLE_ID,
         config.CURATOR_ROLE_ID,
-        config.ZEUS_ROLE_ID,
-        config.ZEUSINTRAINING_ROLE_ID
+        config.ADVISOR_ROLE_ID
     )
+    
     async def no_show_report(self, interaction: discord.Interaction, member: discord.Member) -> None:
         try:
             await interaction.response.defer(ephemeral=True)  # Acknowledge the interaction early
