@@ -1,0 +1,11 @@
+discord.py
+audioop-lts; python_version >= "3.13"
+urllib3
+pytz
+colorama
+requests
+python-dateutil
+pysftp
+beautifulsoup4
+asyncpraw
+unidecode
