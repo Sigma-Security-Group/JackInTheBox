@@ -3,9 +3,12 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from datetime import datetime, timedelta, timezone
+import config  # Import your configuration module
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
+
+APPEAL_INSTRUCTIONS = "If your ban is appealable, contact the Director or Deputy Director via Direct Message."
 
 class BanManager(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
@@ -36,20 +39,16 @@ class BanManager(commands.Cog):
             embed.add_field(name="Reason", value=reason, inline=False)
             embed.add_field(name="Duration", value=f"{duration} days", inline=False)
             embed.add_field(name="Appeal Status", value=appeal_status, inline=False)
-            embed.add_field(
-                name="How to Appeal", 
-                value="If your ban is appealable, contact the Dierector or Deputy Director via [appeal instructions].",
-                inline=False
-            )
+            embed.add_field(name="How to Appeal", value=APPEAL_INSTRUCTIONS, inline=False)
             embed.set_footer(text=f"Your ban was made by {interaction.user.display_name}")
 
+            # Try to DM the user
             try:
                 await member.send(embed=embed)
                 logging.info(f"Ban notification sent to {member}")
             except discord.Forbidden:
-                await interaction.response.send_message(f"Could not DM {member.mention} about the ban.", ephemeral=True)
                 logging.warning(f"Failed to DM {member}")
-                return
+                await interaction.followup.send(f"Could not DM {member.mention} about the ban.", ephemeral=True)
 
             # Ban the user
             await member.ban(reason=reason)
@@ -58,7 +57,7 @@ class BanManager(commands.Cog):
             # Confirmation message
             await interaction.response.send_message(f"{member.mention} has been banned for {duration} days. Reason: {reason}")
 
-            # Logging
+            # Logging to a channel
             logging_channel = self.bot.get_channel(config.REPORT_LOG_CHANNEL_ID)
             if logging_channel:
                 log_embed = discord.Embed(
@@ -74,10 +73,12 @@ class BanManager(commands.Cog):
                 await logging_channel.send(embed=log_embed)
             else:
                 logging.warning("Logging channel not found. Ban details will not be logged.")
+                await interaction.followup.send("Logging channel not found. Please check the configuration.", ephemeral=True)
 
         except Exception as e:
             logging.exception(f"Error in ban command: {e}")
-            await interaction.response.send_message("An unexpected error occurred while processing the ban.", ephemeral=True)
+            if not interaction.response.is_done():
+                await interaction.response.send_message("An unexpected error occurred while processing the ban.", ephemeral=True)
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(BanManager(bot))

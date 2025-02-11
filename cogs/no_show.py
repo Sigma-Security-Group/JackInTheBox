@@ -7,7 +7,6 @@ from discord.ext import commands
 from discord import app_commands
 import config
 
-
 # Logging setup
 logging.basicConfig(level=logging.INFO)
 
@@ -17,25 +16,36 @@ class NoShowTracking(commands.Cog):
         super().__init__()
         self.bot = bot
 
-    @discord.app_commands.command(name="no-show-report", description="Report a member for missing a scheduled event.")
+    def ensure_json_file_exists(self, file_path: str) -> None:
+        """Ensure the JSON file exists and initialize it if it doesn't."""
+        if not os.path.exists(file_path):
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)  # Create directory if necessary
+            with open(file_path, "w") as f:
+                json.dump({}, f, indent=4)  # Initialize with an empty dictionary
+
+    @discord.app_commands.command(name="no-show-report", description="Report a member for missing a scheduled operation.")
     @discord.app_commands.guilds(config.GUILD_ID)
     @discord.app_commands.checks.has_any_role(
         config.UNIT_STAFF_ROLE_ID,
         config.CURATOR_ROLE_ID,
         config.ADVISOR_ROLE_ID
     )
-    
-    async def no_show_report(self, interaction: discord.Interaction, member: discord.Member) -> None:
+    async def no_show_report(
+        self,
+        interaction: discord.Interaction,
+        member: discord.Member,
+        operation_name: str,
+        zeus: str
+    ) -> None:
+        """Report a no-show for a specific operation."""
         try:
             await interaction.response.defer(ephemeral=True)  # Acknowledge the interaction early
 
-            # Check if the JSON file exists; create it if it doesn't
+            # Ensure JSON file exists
             no_show_file_path = "Data/no_show_data.json"
-            if not os.path.exists(no_show_file_path):
-                with open(no_show_file_path, "w") as f:
-                    json.dump({}, f, indent=4)  # Initialize with an empty dictionary
+            self.ensure_json_file_exists(no_show_file_path)
 
-            # Load no-show data from JSON for tracking
+            # Load no-show data from JSON
             with open(no_show_file_path, "r") as f:
                 no_show_data = json.load(f)
 
@@ -46,12 +56,16 @@ class NoShowTracking(commands.Cog):
             if user_id not in no_show_data:
                 no_show_data[user_id] = {
                     "count": 0,
-                    "timestamps": []
+                    "records": []  # Initialize an empty list for operation records
                 }
 
-            # Increment the no-show count and add the timestamp
+            # Increment the no-show count and log operation details
             no_show_data[user_id]["count"] += 1
-            no_show_data[user_id]["timestamps"].append(current_time)
+            no_show_data[user_id]["records"].append({
+                "operation_name": operation_name,
+                "date": current_time,
+                "zeus": zeus
+            })
 
             # Save updated no-show data back to the JSON file
             with open(no_show_file_path, "w") as f:
@@ -63,17 +77,16 @@ class NoShowTracking(commands.Cog):
                     embed=discord.Embed(
                         title="No-Show Report",
                         description=(
-                            f"You have been marked as a no-show for a scheduled event. "
-                            f"This report has been sent to staff for further review."
+                            f"You have been marked as a no-show for the operation **{operation_name}** "
+                            f"organized by **{zeus}**. Staff has been notified."
                         ),
                         color=discord.Color.red()
-                    ).set_footer(text="Please ensure you attend scheduled events to avoid further actions.")
+                    ).set_footer(text="Please ensure you attend scheduled operations to avoid further actions.")
                 )
             except discord.Forbidden:
-                # Log if the bot is unable to DM the user
                 logging.warning(f"Could not DM {member.display_name}. User has DMs disabled.")
 
-            # Notify the STAFF_ADVISOR_CHANNEL_ID with a report
+            # Notify staff in the configured channel
             staff_advisor_channel = self.bot.get_channel(config.STAFF_ADVISOR_CHANNEL_ID)
             if not staff_advisor_channel:
                 await interaction.followup.send(
@@ -85,18 +98,18 @@ class NoShowTracking(commands.Cog):
             # Embed for tracking purposes
             embed = discord.Embed(
                 title="No-Show Report",
-                description=f"{member.mention} has been reported as a no-show for a scheduled event.",
+                description=f"{member.mention} has been reported as a no-show.",
                 color=discord.Color.orange()
             )
+            embed.add_field(name="Operation Name", value=operation_name, inline=False)
+            embed.add_field(name="Zeus", value=zeus, inline=False)
             embed.add_field(name="Reported By", value=interaction.user.mention, inline=False)
             embed.add_field(name="No-Show Count", value=no_show_data[user_id]["count"], inline=False)
             embed.set_footer(text="Staff may take further action as necessary.")
-
             await staff_advisor_channel.send(embed=embed)
 
-            # Check if the user has reached 3 no-shows
+            # Notify if 3 no-shows are reached
             if no_show_data[user_id]["count"] >= 3:
-                # Notify the staff with a special alert
                 staff_role = interaction.guild.get_role(config.UNIT_STAFF_ROLE_ID)
                 alert_embed = discord.Embed(
                     title="Repeated No-Show Alert",
@@ -109,9 +122,9 @@ class NoShowTracking(commands.Cog):
                 alert_embed.set_footer(text="Please take the necessary actions to address this.")
                 await staff_advisor_channel.send(content=staff_role.mention, embed=alert_embed)
 
-            # Acknowledge success to the interaction user
+            # Acknowledge success
             await interaction.followup.send(
-                f"Successfully reported {member.mention} as a no-show.",
+                f"Successfully reported {member.mention} as a no-show for **{operation_name}**.",
                 ephemeral=True
             )
 
@@ -122,7 +135,7 @@ class NoShowTracking(commands.Cog):
                 ephemeral=True
             )
 
-    @discord.app_commands.command(name="no-show-stats", description="Display a le stat-board of no-show reports.")
+    @discord.app_commands.command(name="no-show-stats", description="Display a leaderboard of no-show reports.")
     @discord.app_commands.guilds(config.GUILD_ID)
     @discord.app_commands.checks.has_any_role(
         config.UNIT_STAFF_ROLE_ID,
@@ -131,52 +144,57 @@ class NoShowTracking(commands.Cog):
         config.ZEUSINTRAINING_ROLE_ID
     )
     async def no_show_leaderboard(self, interaction: discord.Interaction) -> None:
+        """Display stats for no-shows, including operations and dates."""
         try:
             await interaction.response.defer(ephemeral=False)  # Acknowledge the interaction
 
             # Load no-show data from JSON
             no_show_file_path = "Data/no_show_data.json"
-            if not os.path.exists(no_show_file_path):
-                await interaction.followup.send("No no-show data found. The file does not exist.", ephemeral=True)
-                return
+            self.ensure_json_file_exists(no_show_file_path)
 
             with open(no_show_file_path, "r") as f:
                 no_show_data = json.load(f)
 
-            # Sort users by their no-show count (descending)
-            sorted_no_shows = sorted(no_show_data.items(), key=lambda x: x[1]["count"], reverse=True)
-
             # Check if there are any records
-            if not sorted_no_shows:
+            if not no_show_data:
                 await interaction.followup.send("No no-show records found.", ephemeral=True)
                 return
 
             # Build the embed for the leaderboard
             embed = discord.Embed(
-                title="No-Show Stat-board",
-                description="List of members with the most no-shows (sorted from highest to lowest):",
+                title="No-Show Leaderboard",
+                description="List of members with their no-show records (sorted by highest count):",
                 color=discord.Color.orange()
             )
 
             guild = interaction.guild
+            sorted_no_shows = sorted(no_show_data.items(), key=lambda x: x[1]["count"], reverse=True)
+
             for i, (user_id, data) in enumerate(sorted_no_shows[:10]):  # Limit to top 10
                 member = guild.get_member(int(user_id))
                 member_name = member.display_name if member else f"Unknown User ({user_id})"
+
+                # Ensure "records" exists in the user's data
+                records = data.get("records", [])
+                formatted_records = "\n".join(
+                    f"**{record['operation_name']}** on {datetime.fromisoformat(record['date']).strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                    for record in records
+                ) if records else "No specific records found."
+
                 embed.add_field(
                     name=f"{i + 1}. {member_name}",
-                    value=f"No-Show Count: {data['count']}",
+                    value=f"No-Show Count: {data['count']}\n\n{formatted_records}",
                     inline=False
                 )
 
             await interaction.followup.send(embed=embed)
 
         except Exception as e:
-            logging.exception(f"Error in no_show_stat command: {e}")
+            logging.exception(f"Error in no_show_stats command: {e}")
             await interaction.followup.send(
                 "An error occurred while generating the no-show stats. Please try again later.",
                 ephemeral=True
             )
-
 
 # Cog setup function
 async def setup(bot: commands.Bot) -> None:
