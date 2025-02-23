@@ -2,7 +2,7 @@ import json
 import os
 import logging
 import discord
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from discord.ext import commands
 from discord import app_commands
 import config
@@ -195,6 +195,78 @@ class NoShowTracking(commands.Cog):
                 "An error occurred while generating the no-show stats. Please try again later.",
                 ephemeral=True
             )
+
+    # ===================================
+    # Candidate Tracking Command. // Jack
+    # ===================================
+    @discord.app_commands.command(name="track-a-candidate", description="Track a candidate's progress through operations.")
+    @discord.app_commands.guilds(config.GUILD_ID)
+    @discord.app_commands.checks.has_any_role(config.UNIT_STAFF_ROLE_ID, config.CURATOR_ROLE_ID, config.ZEUS_ROLE_ID, config.ZEUSINTRAINING_ROLE_ID)
+    async def track_a_candidate(self, interaction: discord.Interaction, member: discord.Member) -> None:
+        await interaction.response.send_message(f"Tracking progress for {member.display_name}", ephemeral=True)
+
+        channel_commendations = self.bot.get_channel(config.COMMENDATIONS_CHANNEL_ID)
+        if not channel_commendations:
+            await interaction.followup.send("Commendations channel not found.", ephemeral=True)
+            return
+
+        operation_count = 1
+        most_recent_message_time = None
+
+        async for message in channel_commendations.history(limit=500):
+            if config.OPERATION_KEYWORD.lower() in message.content.lower() and member in message.mentions:
+                operation_count += 1
+                if most_recent_message_time is None or message.created_at > most_recent_message_time:
+                    most_recent_message_time = message.created_at
+
+        current_time = datetime.now(timezone.utc)
+
+        if most_recent_message_time and current_time - most_recent_message_time < timedelta(seconds=1):
+            await interaction.followup.send("Error code CCT-0004: Member has already been tracked for this operation. Please try again later.", ephemeral=True)
+            logging.debug("Skip tracking due to recent message.")
+            return
+
+        if operation_count >= config.TOTAL_OPERATIONS:
+            guild = interaction.guild
+            unit_staff_role = guild.get_role(config.UNIT_STAFF_ROLE_ID)
+
+            text_message = (
+                f"{member.mention}, after demonstrating valour and dedication across {operation_count} successful deployments, "
+                f"you’ve proven yourself an asset to this unit.\n\nWelcome to Sigma. Your journey has just begun.\n\n"
+                f"{member.mention}, it is now time for your assessment with {unit_staff_role.mention}."
+            )
+            await channel_commendations.send(text_message)
+
+            embed = discord.Embed(
+                title="Candidate Progress Update",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="Candidate", value=member.mention, inline=False)
+            embed.add_field(name="Progress", value=f"{operation_count}/{config.TOTAL_OPERATIONS} operations completed.", inline=False)
+            embed.add_field(name="Status", value="**Promoted to Sigma Associate**", inline=False)
+            embed.set_footer(text="Congratulations on your outstanding achievement!")
+
+            await channel_commendations.send(embed=embed)
+
+        else:
+            remaining_ops = config.TOTAL_OPERATIONS - operation_count
+
+            text_message = (
+                f"{member.mention} has attended an operation and is on their way to becoming a Sigma Associate. "
+                f"They have {remaining_ops} operations left."
+            )
+            await channel_commendations.send(text_message)
+
+            embed = discord.Embed(
+                title="Candidate Progress Update",
+                color=discord.Color.blue()
+            )
+            embed.add_field(name="Candidate", value=member.mention, inline=False)
+            embed.add_field(name="Progress", value=f"{operation_count}/{config.TOTAL_OPERATIONS} operations completed.", inline=False)
+            embed.add_field(name="Remaining Operations", value=f"{remaining_ops} left.", inline=False)
+            embed.set_footer(text="Keep up the great work!")
+
+            await channel_commendations.send(embed=embed)
 
 # Cog setup function
 async def setup(bot: commands.Bot) -> None:
